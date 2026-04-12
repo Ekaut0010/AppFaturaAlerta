@@ -1,0 +1,217 @@
+/* =========================
+   RESET & BASE
+========================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Inter", Arial, sans-serif;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    transition: background 0.3s, color 0.3s;
+}
+
+/* =========================
+   TEMA (DARK DEFAULT)
+========================= */
+:root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-item: #334155;
+    /* 👈 novo */
+    --input: #334155;
+    --text: #ffffff;
+
+    --primary: #3b82f6;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --success: #22c55e;
+}
+
+
+/* LIGHT MODE */
+.light {
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --card-item: #f8fafc;
+    /* 👈 novo */
+    --input: #e2e8f0;
+    --text: #0f172a;
+}
+
+/* aplica cores */
+body {
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* =========================
+   LAYOUT
+========================= */
+.container {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card);
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* =========================
+   HEADER
+========================= */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+h1 {
+    font-size: 20px;
+}
+
+/* botão tema */
+.theme-toggle {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* =========================
+   FORM
+========================= */
+input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border: none;
+    outline: none;
+    background: var(--input);
+    color: var(--text);
+    transition: 0.2s;
+}
+
+input:focus {
+    outline: 2px solid var(--primary);
+}
+
+/* botão principal */
+.btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+/* =========================
+   LISTA
+========================= */
+ul {
+    list-style: none;
+    margin-top: 20px;
+}
+
+/* CARD */
+li {
+    background: var(--card-item);
+    padding: 14px;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    line-height: 1.5;
+
+    animation: fadeIn 0.3s ease;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+li:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* =========================
+   STATUS
+========================= */
+.status {
+    display: block;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+/* barra lateral */
+.red {
+    border-left: 5px solid var(--danger);
+}
+
+.orange {
+    border-left: 5px solid var(--warning);
+}
+
+.green {
+    border-left: 5px solid var(--success);
+}
+
+.blue {
+    border-left: 5px solid var(--primary);
+}
+
+/* =========================
+   BOTÕES INTERNOS
+========================= */
+.actions {
+    margin-top: 8px;
+}
+
+.actions button {
+    border: none;
+    border-radius: 8px;
+    padding: 6px 8px;
+    margin-right: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.actions button:hover {
+    opacity: 0.85;
+}
+
+/* =========================
+   ANIMAÇÕES
+========================= */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
