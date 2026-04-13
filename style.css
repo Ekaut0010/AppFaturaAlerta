@@ -215,3 +215,45 @@ li:hover {
         transform: translateY(0);
     }
 }
+
+/* =========================
+   INPUT
+========================= */
+
+.input-dia {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.input-dia input {
+    width: 60px;
+    height: 40px;
+    text-align: center;
+    font-size: 18px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    background: var(--card-bg);
+    color: var(--text-color);
+}
+
+.input-dia button {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    background: #4CAF50;
+    color: white;
+    transition: 0.2s;
+}
+
+.input-dia button:hover {
+    transform: scale(1.1);
+}
+
+.input-dia button:active {
+    transform: scale(0.95);
+}

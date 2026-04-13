@@ -19,7 +19,13 @@
 
         <input id="nome" placeholder="Nome">
         <input id="contato" placeholder="Contato">
-        <input id="dia" type="number" min="1" max="31" placeholder="Dia do vencimento">
+        <div class="input-dia">
+            <button onclick="diminuirDia()">−</button>
+
+            <input type="text" id="dia" value="1" readonly>
+
+            <button onclick="aumentarDia()">+</button>
+        </div>
 
         <button class="btn" onclick="adicionarCliente()">Salvar</button>
 

@@ -18,6 +18,26 @@ function limparCampos() {
 }
 
 // =========================
+// input
+// =========================
+function aumentarDia() {
+  const input = document.getElementById("dia");
+  let valor = Number(input.value);
+
+  if (valor < 31) {
+    input.value = valor + 1;
+  }
+}
+
+function diminuirDia() {
+  const input = document.getElementById("dia");
+  let valor = Number(input.value);
+
+  if (valor > 1) {
+    input.value = valor - 1;
+  }
+}
+// =========================
 // RESET MENSAL AUTOMÁTICO
 // =========================
 function resetMensal() {
