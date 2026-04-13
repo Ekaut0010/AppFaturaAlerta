@@ -1,53 +1,55 @@
 // =========================
-// ESTADO (dados)
+// ESTADO
 // =========================
 let clientes = JSON.parse(localStorage.getItem("clientes")) || [];
+let editandoIndex = null;
 
 // =========================
 // UTILIDADES
 // =========================
-
-// salvar dados
 function salvarDados() {
   localStorage.setItem("clientes", JSON.stringify(clientes));
 }
 
-// limpar inputs
 function limparCampos() {
   document.getElementById("nome").value = "";
   document.getElementById("contato").value = "";
-  document.getElementById("vencimento").value = "";
+  document.getElementById("dia").value = "";
 }
 
-// formatar data
-function formatarData(dataStr) {
-  const data = new Date(dataStr + "T00:00:00");
+// =========================
+// RESET MENSAL AUTOMÁTICO
+// =========================
+function resetMensal() {
+  const mesAtual = new Date().getMonth();
+  const ultimoMesSalvo = localStorage.getItem("mesAtual");
 
-  return data.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-  });
+  if (ultimoMesSalvo == null || Number(ultimoMesSalvo) !== mesAtual) {
+    clientes.forEach((cliente) => {
+      cliente.mensagemEnviada = false;
+      cliente.enviadoPor = null;
+    });
+
+    localStorage.setItem("mesAtual", mesAtual);
+    salvarDados();
+  }
 }
 
-// obter status
+// =========================
+// STATUS
+// =========================
 function obterStatus(cliente) {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  const data = new Date(cliente.vencimento + "T00:00:00");
+  const hoje = new Date().getDate();
 
   if (cliente.mensagemEnviada) {
-    return {
-      texto: `Resolvido por ${cliente.enviadoPor}`,
-      cor: "green",
-    };
+    return { texto: `Resolvido por ${cliente.enviadoPor}`, cor: "green" };
   }
 
-  if (data.getTime() === hoje.getTime()) {
+  if (cliente.diaVencimento === hoje) {
     return { texto: "Vence hoje", cor: "orange" };
   }
 
-  if (data < hoje) {
+  if (cliente.diaVencimento < hoje) {
     return { texto: "Atrasado", cor: "red" };
   }
 
@@ -57,43 +59,30 @@ function obterStatus(cliente) {
 // =========================
 // AÇÕES
 // =========================
-
-//editar clientes
-let editaIndex = null;
-
-function editarClientes(index) {
-  const cliente = clientes[index];
-  document.getElementById("nome").value = cliente.nome;
-  document.getElementById("contato").value = cliente.contato;
-  document.getElementById("vencimento").value = cliente.vencimento;
-
-  editaIndex = index; //guardar edição
-}
-
-// adicionar cliente
 function adicionarCliente() {
   const nome = document.getElementById("nome").value.trim();
   const contato = document.getElementById("contato").value.trim();
-  const vencimento = document.getElementById("vencimento").value;
+  const dia = Number(document.getElementById("dia").value);
 
-  if (!nome || !contato || !vencimento) {
+  if (!nome || !contato || !dia) {
     alert("Preencha todos os campos!");
     return;
   }
 
-  if (editaIndex !== null) {
-    // editar
-    clientes[editaIndex].nome = nome;
-    clientes[editaIndex].contato = contato;
-    clientes[editaIndex].vencimento = vencimento;
+  if (editandoIndex !== null) {
+    clientes[editandoIndex] = {
+      ...clientes[editandoIndex],
+      nome,
+      contato,
+      diaVencimento: dia,
+    };
 
-    editaIndex = null;
+    editandoIndex = null;
   } else {
-    // ➕ CRIAR
     clientes.push({
       nome,
       contato,
-      vencimento,
+      diaVencimento: dia,
       mensagemEnviada: false,
       enviadoPor: null,
     });
@@ -104,7 +93,16 @@ function adicionarCliente() {
   renderizarLista();
 }
 
-// marcar como enviado
+function editarClientes(index) {
+  const cliente = clientes[index];
+
+  document.getElementById("nome").value = cliente.nome;
+  document.getElementById("contato").value = cliente.contato;
+  document.getElementById("dia").value = cliente.diaVencimento;
+
+  editandoIndex = index;
+}
+
 function marcarEnviado(index) {
   const nomePessoa = prompt("Quem enviou?");
   if (!nomePessoa) return;
@@ -116,19 +114,16 @@ function marcarEnviado(index) {
   renderizarLista();
 }
 
-// remover cliente
 function removerCliente(index) {
-  const confirmar = confirm("Tem certeza que deseja excluir?");
-  if (!confirmar) return;
+  if (!confirm("Tem certeza?")) return;
 
   clientes.splice(index, 1);
-
   salvarDados();
   renderizarLista();
 }
 
 // =========================
-// RENDERIZAÇÃO
+// RENDER
 // =========================
 function renderizarLista() {
   const lista = document.getElementById("listaClientes");
@@ -136,25 +131,21 @@ function renderizarLista() {
 
   clientes.forEach((cliente, index) => {
     const li = document.createElement("li");
-
-    const dataFormatada = formatarData(cliente.vencimento);
     const status = obterStatus(cliente);
-
-    li.classList.add(status.cor);
 
     li.innerHTML = `
       <strong>${cliente.nome}</strong><br>
       📞 ${cliente.contato}<br>
-      📅 ${dataFormatada}<br>
+      📅 Dia ${cliente.diaVencimento}<br>
 
-      <span class="status" style="color: ${status.cor}">
+      <span style="color:${status.cor}">
         ${status.texto}
       </span>
 
       <div class="actions">
-        <button class="btn-success" onclick="marcarEnviado(${index})">✔</button>
-        <button class="btn-danger" onclick="removerCliente(${index})">🗑</button>
-        <button onclick="editarClientes(${index})">✏ Editar</button>
+        <button class="btn-success"onclick="marcarEnviado(${index})">✔</button>
+        <button class="btn-danger"onclick="removerCliente(${index})">🗑</button>
+        <button class="" onclick="editarClientes(${index})">✏</button>
       </div>
     `;
 
@@ -163,46 +154,42 @@ function renderizarLista() {
 }
 
 // =========================
-// TEMA (dark/light)
+// TEMA
 // =========================
 function toggleTema() {
   document.body.classList.toggle("light");
-
   const tema = document.body.classList.contains("light") ? "light" : "dark";
   localStorage.setItem("tema", tema);
 }
 
-// carregar tema salvo
 function carregarTema() {
-  const temaSalvo = localStorage.getItem("tema");
-  if (temaSalvo === "light") {
+  const tema = localStorage.getItem("tema");
+  if (tema === "light") {
     document.body.classList.add("light");
   }
 }
 
 // =========================
-// INICIALIZAÇÃO
+// ALERTAS
+// =========================
+function verificarVencimentos() {
+  const hoje = new Date().getDate();
+
+  clientes.forEach((cliente) => {
+    if (!cliente.mensagemEnviada && cliente.diaVencimento === hoje) {
+      alert(`⚠️ ${cliente.nome} vence hoje!`);
+    }
+  });
+}
+
+// =========================
+// INIT
 // =========================
 function init() {
   carregarTema();
+  resetMensal(); // 🔥 aqui entra o reset automático
   renderizarLista();
   verificarVencimentos();
 }
 
 init();
-
-// =========================
-// Verificar Vencimentos
-// =========================
-function verificarVencimentos() {
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  clientes.forEach((cliente) => {
-    const data = new Date(cliente.vencimento + "T00:00:00");
-
-    if (!cliente.mensagemEnviada && data.getTime() === hoje.getTime()) {
-      alert(`⚠️ ${cliente.nome} vence hoje!`);
-    }
-  });
-}
