@@ -58,6 +58,18 @@ function obterStatus(cliente) {
 // AÇÕES
 // =========================
 
+//editar clientes
+let editaIndex = null;
+
+function editarClientes(index) {
+  const cliente = clientes[index];
+  document.getElementById("nome").value = cliente.nome;
+  document.getElementById("contato").value = cliente.contato;
+  document.getElementById("vencimento").value = cliente.vencimento;
+
+  editaIndex = index; //guardar edição
+}
+
 // adicionar cliente
 function adicionarCliente() {
   const nome = document.getElementById("nome").value.trim();
@@ -69,15 +81,23 @@ function adicionarCliente() {
     return;
   }
 
-  const cliente = {
-    nome,
-    contato,
-    vencimento,
-    mensagemEnviada: false,
-    enviadoPor: null,
-  };
+  if (editaIndex !== null) {
+    // editar
+    clientes[editaIndex].nome = nome;
+    clientes[editaIndex].contato = contato;
+    clientes[editaIndex].vencimento = vencimento;
 
-  clientes.push(cliente);
+    editaIndex = null;
+  } else {
+    // ➕ CRIAR
+    clientes.push({
+      nome,
+      contato,
+      vencimento,
+      mensagemEnviada: false,
+      enviadoPor: null,
+    });
+  }
 
   salvarDados();
   limparCampos();
@@ -134,6 +154,7 @@ function renderizarLista() {
       <div class="actions">
         <button class="btn-success" onclick="marcarEnviado(${index})">✔</button>
         <button class="btn-danger" onclick="removerCliente(${index})">🗑</button>
+        <button onclick="editarClientes(${index})">✏ Editar</button>
       </div>
     `;
 
