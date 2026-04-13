@@ -1,58 +1,129 @@
+console.log("SCRIPT CARREGOU");
+window.adicionarCliente = () => console.log("clicou salvar");
+
+// =========================
+// FIREBASE
+// =========================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  deleteDoc,
+  doc,
+  updateDoc,
+  onSnapshot,
+  query,
+  where,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+// =========================
+// CONFIG
+// =========================
+const firebaseConfig = {
+  apiKey: "AIzaSyBLeiDpZp2AZ-m_yM1C63OqFx0p7HGZLDc", // 🔥 SUA KEY REAL
+  authDomain: "faturaapp-49a98.firebaseapp.com",
+  projectId: "faturaapp-49a98",
+  storageBucket: "faturaapp-49a98.firebasestorage.app",
+  messagingSenderId: "120182099403",
+  appId: "1:120182099403:web:7f313c0713f582de71fa4e",
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
 // =========================
 // ESTADO
 // =========================
-let clientes = JSON.parse(localStorage.getItem("clientes")) || [];
-let editandoIndex = null;
+let clientes = [];
+let editandoId = null;
 
 // =========================
-// UTILIDADES
+// DOM (centralizado)
 // =========================
-function salvarDados() {
-  localStorage.setItem("clientes", JSON.stringify(clientes));
+const el = {
+  nome: document.getElementById("nome"),
+  contato: document.getElementById("contato"),
+  dia: document.getElementById("dia"),
+  lista: document.getElementById("listaClientes"),
+  auth: document.getElementById("auth"),
+  app: document.getElementById("app"),
+
+  // 👇 FALTAVA ISSO
+  email: document.getElementById("email"),
+  senha: document.getElementById("senha"),
+};
+// =========================
+// TEMA
+// =========================
+function toggleTema() {
+  document.body.classList.toggle("light");
+
+  const tema = document.body.classList.contains("light") ? "light" : "dark";
+
+  localStorage.setItem("tema", tema);
 }
 
-function limparCampos() {
-  document.getElementById("nome").value = "";
-  document.getElementById("contato").value = "";
-  document.getElementById("dia").value = "";
+function carregarTema() {
+  const tema = localStorage.getItem("tema");
+  if (tema === "light") document.body.classList.add("light");
 }
 
 // =========================
-// input
+// AUTH
+// =========================
+async function cadastrar() {
+  try {
+    await createUserWithEmailAndPassword(auth, el.email.value, el.senha.value);
+    alert("Conta criada!");
+  } catch (erro) {
+    alert(erro.message);
+  }
+}
+
+async function login() {
+  try {
+    await signInWithEmailAndPassword(auth, el.email.value, el.senha.value);
+  } catch (erro) {
+    alert(erro.message);
+  }
+}
+
+function logout() {
+  signOut(auth);
+}
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    el.auth.style.display = "none";
+    el.app.style.display = "block";
+    escutarClientes(user.uid);
+  } else {
+    el.auth.style.display = "block";
+    el.app.style.display = "none";
+  }
+});
+
+// =========================
+// INPUT DIA
 // =========================
 function aumentarDia() {
-  const input = document.getElementById("dia");
-  let valor = Number(input.value);
-
-  if (valor < 31) {
-    input.value = valor + 1;
-  }
+  const valor = Number(el.dia.value) || 1;
+  if (valor < 31) el.dia.value = valor + 1;
 }
 
 function diminuirDia() {
-  const input = document.getElementById("dia");
-  let valor = Number(input.value);
-
-  if (valor > 1) {
-    input.value = valor - 1;
-  }
-}
-// =========================
-// RESET MENSAL AUTOMÁTICO
-// =========================
-function resetMensal() {
-  const mesAtual = new Date().getMonth();
-  const ultimoMesSalvo = localStorage.getItem("mesAtual");
-
-  if (ultimoMesSalvo == null || Number(ultimoMesSalvo) !== mesAtual) {
-    clientes.forEach((cliente) => {
-      cliente.mensagemEnviada = false;
-      cliente.enviadoPor = null;
-    });
-
-    localStorage.setItem("mesAtual", mesAtual);
-    salvarDados();
-  }
+  const valor = Number(el.dia.value) || 1;
+  if (valor > 1) el.dia.value = valor - 1;
 }
 
 // =========================
@@ -77,129 +148,127 @@ function obterStatus(cliente) {
 }
 
 // =========================
-// AÇÕES
+// CRUD
 // =========================
-function adicionarCliente() {
-  const nome = document.getElementById("nome").value.trim();
-  const contato = document.getElementById("contato").value.trim();
-  const dia = Number(document.getElementById("dia").value);
+async function adicionarCliente() {
+  const nome = el.nome.value.trim();
+  const contato = el.contato.value.trim();
+  const dia = Number(el.dia.value);
 
   if (!nome || !contato || !dia) {
-    alert("Preencha todos os campos!");
+    alert("Preencha tudo!");
     return;
   }
 
-  if (editandoIndex !== null) {
-    clientes[editandoIndex] = {
-      ...clientes[editandoIndex],
-      nome,
-      contato,
-      diaVencimento: dia,
-    };
+  try {
+    if (editandoId) {
+      await updateDoc(doc(db, "clientes", editandoId), {
+        nome,
+        contato,
+        diaVencimento: dia,
+      });
+      editandoId = null;
+    } else {
+      await addDoc(collection(db, "clientes"), {
+        uid: auth.currentUser.uid,
+        nome,
+        contato,
+        diaVencimento: dia,
+        mensagemEnviada: false,
+        enviadoPor: null,
+      });
+    }
 
-    editandoIndex = null;
-  } else {
-    clientes.push({
-      nome,
-      contato,
-      diaVencimento: dia,
-      mensagemEnviada: false,
-      enviadoPor: null,
-    });
+    limparCampos();
+  } catch (erro) {
+    console.error(erro);
+    alert("Erro ao salvar");
   }
-
-  salvarDados();
-  limparCampos();
-  renderizarLista();
 }
 
-function editarClientes(index) {
-  const cliente = clientes[index];
-
-  document.getElementById("nome").value = cliente.nome;
-  document.getElementById("contato").value = cliente.contato;
-  document.getElementById("dia").value = cliente.diaVencimento;
-
-  editandoIndex = index;
+async function removerCliente(id) {
+  if (!confirm("Tem certeza?")) return;
+  await deleteDoc(doc(db, "clientes", id));
 }
 
-function marcarEnviado(index) {
+async function marcarEnviado(id) {
   const nomePessoa = prompt("Quem enviou?");
   if (!nomePessoa) return;
 
-  clientes[index].mensagemEnviada = true;
-  clientes[index].enviadoPor = nomePessoa;
-
-  salvarDados();
-  renderizarLista();
+  await updateDoc(doc(db, "clientes", id), {
+    mensagemEnviada: true,
+    enviadoPor: nomePessoa,
+  });
 }
 
-function removerCliente(index) {
-  if (!confirm("Tem certeza?")) return;
+// =========================
+// TEMPO REAL
+// =========================
+function escutarClientes(uid) {
+  const q = query(collection(db, "clientes"), where("uid", "==", uid));
 
-  clientes.splice(index, 1);
-  salvarDados();
-  renderizarLista();
+  onSnapshot(q, (snapshot) => {
+    clientes = snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
+    }));
+
+    renderizarLista();
+  });
 }
 
 // =========================
 // RENDER
 // =========================
 function renderizarLista() {
-  const lista = document.getElementById("listaClientes");
-  lista.innerHTML = "";
+  el.lista.innerHTML = "";
 
-  clientes.forEach((cliente, index) => {
-    const li = document.createElement("li");
+  clientes.forEach((cliente) => {
     const status = obterStatus(cliente);
+
+    const li = document.createElement("li");
+    li.classList.add(status.cor);
 
     li.innerHTML = `
       <strong>${cliente.nome}</strong><br>
       📞 ${cliente.contato}<br>
       📅 Dia ${cliente.diaVencimento}<br>
 
-      <span style="color:${status.cor}">
+      <span class="status" style="color:${status.cor}">
         ${status.texto}
       </span>
 
       <div class="actions">
-        <button class="btn-success"onclick="marcarEnviado(${index})">✔</button>
-        <button class="btn-danger"onclick="removerCliente(${index})">🗑</button>
-        <button class="" onclick="editarClientes(${index})">✏</button>
-      </div>
+  <button class="btn-check" onclick="marcarEnviado('${cliente.id}')">✔</button>
+  <button class="btn-edit" onclick="editarClientes('${cliente.id}')">✏</button>
+  <button class="btn-delete" onclick="removerCliente('${cliente.id}')">🗑</button>
+</div>
     `;
 
-    lista.appendChild(li);
+    el.lista.appendChild(li);
   });
 }
 
 // =========================
-// TEMA
+// EDITAR
 // =========================
-function toggleTema() {
-  document.body.classList.toggle("light");
-  const tema = document.body.classList.contains("light") ? "light" : "dark";
-  localStorage.setItem("tema", tema);
-}
+function editarClientes(id) {
+  const cliente = clientes.find((c) => c.id === id);
 
-function carregarTema() {
-  const tema = localStorage.getItem("tema");
-  if (tema === "light") {
-    document.body.classList.add("light");
-  }
+  el.nome.value = cliente.nome;
+  el.contato.value = cliente.contato;
+  el.dia.value = cliente.diaVencimento;
+
+  editandoId = id;
 }
 
 // =========================
-// ALERTAS
+// UTIL
 // =========================
-function verificarVencimentos() {
-  const hoje = new Date().getDate();
-
-  clientes.forEach((cliente) => {
-    if (!cliente.mensagemEnviada && cliente.diaVencimento === hoje) {
-      alert(`⚠️ ${cliente.nome} vence hoje!`);
-    }
-  });
+function limparCampos() {
+  el.nome.value = "";
+  el.contato.value = "";
+  el.dia.value = "1";
 }
 
 // =========================
@@ -207,9 +276,20 @@ function verificarVencimentos() {
 // =========================
 function init() {
   carregarTema();
-  resetMensal(); // 🔥 aqui entra o reset automático
-  renderizarLista();
-  verificarVencimentos();
 }
 
 init();
+
+// =========================
+// GLOBAL (necessário por causa do HTML)
+// =========================
+window.adicionarCliente = adicionarCliente;
+window.aumentarDia = aumentarDia;
+window.diminuirDia = diminuirDia;
+window.editarClientes = editarClientes;
+window.removerCliente = removerCliente;
+window.marcarEnviado = marcarEnviado;
+window.login = login;
+window.cadastrar = cadastrar;
+window.logout = logout;
+window.toggleTema = toggleTema;

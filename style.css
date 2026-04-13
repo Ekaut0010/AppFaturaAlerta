@@ -12,41 +12,41 @@ body {
     display: flex;
     justify-content: center;
     padding: 20px;
-    transition: background 0.3s, color 0.3s;
+    background: var(--bg);
+    color: var(--text);
+    transition: all 0.3s ease;
 }
 
 /* =========================
-   TEMA (DARK DEFAULT)
+   TEMA (DESIGN SYSTEM)
 ========================= */
 :root {
     --bg: #0f172a;
     --card: #1e293b;
-    --card-item: #334155;
-    /* 👈 novo */
+    --card-item: #273449;
     --input: #334155;
-    --text: #ffffff;
+    --text: #f1f5f9;
 
     --primary: #3b82f6;
+    --primary-hover: #2563eb;
+
     --danger: #ef4444;
     --warning: #f59e0b;
     --success: #22c55e;
-}
 
+    --radius: 14px;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
 
 /* LIGHT MODE */
 .light {
     --bg: #f1f5f9;
     --card: #ffffff;
     --card-item: #f8fafc;
-    /* 👈 novo */
     --input: #e2e8f0;
     --text: #0f172a;
-}
 
-/* aplica cores */
-body {
-    background: var(--bg);
-    color: var(--text);
+    --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
 
 /* =========================
@@ -56,9 +56,11 @@ body {
     width: 100%;
     max-width: 420px;
     background: var(--card);
-    padding: 20px;
+    padding: 22px;
     border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(10px);
+    animation: fadeIn 0.4s ease;
 }
 
 /* =========================
@@ -68,55 +70,98 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
 }
 
-h1 {
+.header h1 {
     font-size: 20px;
+    font-weight: 600;
 }
 
-/* botão tema */
-.theme-toggle {
-    background: transparent;
+.header small {
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+/* BOTÕES HEADER */
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.theme-toggle,
+.logout {
     border: none;
-    font-size: 20px;
+    background: var(--card-item);
+    color: var(--text);
+    padding: 8px;
+    border-radius: 10px;
     cursor: pointer;
+    transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+    transform: rotate(20deg);
+}
+
+.logout:hover {
+    background: var(--danger);
+    color: white;
 }
 
 /* =========================
-   FORM
+   INPUT COM ÍCONE
 ========================= */
-input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 12px;
-    border: none;
-    outline: none;
+.input-group {
+    display: flex;
+    align-items: center;
     background: var(--input);
+    border-radius: var(--radius);
+    padding: 0 10px;
+    margin-bottom: 10px;
+    transition: all 0.2s;
+}
+
+.input-group:focus-within {
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.input-group i {
+    opacity: 0.7;
+    margin-right: 8px;
+}
+
+.input-group input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 12px;
     color: var(--text);
-    transition: 0.2s;
+    outline: none;
 }
 
-input:focus {
-    outline: 2px solid var(--primary);
-}
-
-/* botão principal */
+/* =========================
+   BOTÃO PRINCIPAL
+========================= */
 .btn {
     width: 100%;
     padding: 12px;
-    border-radius: 12px;
+    border-radius: var(--radius);
     border: none;
     background: var(--primary);
     color: #fff;
-    font-weight: bold;
+    font-weight: 600;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.2s;
 }
 
 .btn:hover {
-    opacity: 0.9;
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: scale(0.97);
 }
 
 /* =========================
@@ -127,21 +172,20 @@ ul {
     margin-top: 20px;
 }
 
-/* CARD */
 li {
     background: var(--card-item);
     padding: 14px;
-    border-radius: 14px;
+    border-radius: var(--radius);
     margin-bottom: 12px;
     line-height: 1.5;
 
     animation: fadeIn 0.3s ease;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.2s;
 }
 
 li:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
 }
 
 /* =========================
@@ -149,11 +193,11 @@ li:hover {
 ========================= */
 .status {
     display: block;
-    font-weight: bold;
-    margin-top: 5px;
+    font-weight: 600;
+    margin-top: 6px;
 }
 
-/* barra lateral */
+/* BORDAS */
 .red {
     border-left: 5px solid var(--danger);
 }
@@ -171,20 +215,21 @@ li:hover {
 }
 
 /* =========================
-   BOTÕES INTERNOS
+   BOTÕES AÇÕES
 ========================= */
 .actions {
-    margin-top: 8px;
+    margin-top: 10px;
+    display: flex;
+    gap: 6px;
 }
 
 .actions button {
     border: none;
     border-radius: 8px;
-    padding: 6px 8px;
-    margin-right: 6px;
+    padding: 6px 10px;
     cursor: pointer;
     font-size: 14px;
-    transition: 0.2s;
+    transition: all 0.2s;
 }
 
 .btn-success {
@@ -198,57 +243,101 @@ li:hover {
 }
 
 .actions button:hover {
-    opacity: 0.85;
+    transform: translateY(-1px);
+    opacity: 0.9;
+}
+
+.actions button:active {
+    transform: scale(0.95);
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+/* BOTÃO BASE */
+.actions button {
+    border: none;
+    padding: 6px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    color: white;
+}
+
+/* ✔ ENVIADO */
+.btn-check {
+    background: #22c55e;
+    /* verde */
+}
+
+.btn-check:hover {
+    background: #16a34a;
+    transform: scale(1.05);
+}
+
+/* ✏ EDITAR */
+.btn-edit {
+    background: #3b82f6;
+    /* azul */
+}
+
+.btn-edit:hover {
+    background: #2563eb;
+    transform: scale(1.05);
+}
+
+/* 🗑 DELETE */
+.btn-delete {
+    background: #ef4444;
+    /* vermelho */
+}
+
+.btn-delete:hover {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+/* clique */
+.actions button:active {
+    transform: scale(0.95);
 }
 
 /* =========================
-   ANIMAÇÕES
+   INPUT DIA
 ========================= */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* =========================
-   INPUT
-========================= */
-
 .input-dia {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    width: 100%;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .input-dia input {
-    width: 50px;
-    height: 38px;
+    width: 60px;
+    height: 42px;
     text-align: center;
     font-size: 16px;
     border-radius: 10px;
-    border: 1px solid #ccc;
-    background: var(--card-bg);
-    color: var(--text-color);
+    border: none;
+    background: var(--input);
+    color: var(--text);
 }
 
 .input-dia button {
-    width: 38px;
-    height: 38px;
+    width: 42px;
+    height: 42px;
     border: none;
     border-radius: 10px;
     font-size: 18px;
     cursor: pointer;
-    background: #4CAF50;
+    background: var(--primary);
     color: white;
-    transition: 0.2s;
+    transition: all 0.2s;
 }
 
 .input-dia button:hover {
@@ -259,20 +348,61 @@ li:hover {
     transform: scale(0.95);
 }
 
+/* =========================
+   LOGIN
+========================= */
+.auth-container {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-card {
+    background: var(--card);
+    padding: 30px;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.auth-card h2 {
+    margin-bottom: 20px;
+}
+
+.link {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--primary);
+    cursor: pointer;
+}
+
+/* =========================
+   ANIMAÇÃO
+========================= */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =========================
+   MOBILE
+========================= */
 @media (max-width: 480px) {
-    .input-dia {
-        gap: 6px;
+    body {
+        padding: 10px;
     }
 
-    .input-dia input {
-        width: 45px;
-        height: 35px;
-        font-size: 14px;
-    }
-
-    .input-dia button {
-        width: 35px;
-        height: 35px;
-        font-size: 16px;
+    .container {
+        padding: 16px;
     }
 }

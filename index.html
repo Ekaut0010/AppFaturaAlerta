@@ -2,36 +2,98 @@
 <html lang="pt-BR">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <title>Alerta de Faturas</title>
+
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
 </head>
 
 <body>
-    <div class="container">
 
-        <div class="header">
-            <h1>Clientes</h1>
-            <button class="theme-toggle" onclick="toggleTema()">🌗</button>
+    <!-- 🔐 LOGIN -->
+    <div id="auth" class="auth-container">
+        <div class="auth-card">
+
+            <h2>🔐 Entrar</h2>
+
+            <div class="input-group">
+                <i class="bi bi-envelope"></i>
+                <input id="email" placeholder="Email">
+            </div>
+
+            <div class="input-group">
+                <i class="bi bi-lock"></i>
+                <input id="senha" type="password" placeholder="Senha">
+            </div>
+
+            <button class="btn" onclick="login()">Entrar</button>
+
+            <p class="link" onclick="cadastrar()">Criar conta</p>
+
         </div>
-
-        <input id="nome" placeholder="Nome">
-        <input id="contato" placeholder="Contato">
-        <div class="input-dia">
-            <button onclick="diminuirDia()">−</button>
-
-            <input type="text" id="dia" value="1" readonly>
-
-            <button onclick="aumentarDia()">+</button>
-        </div>
-
-        <button class="btn" onclick="adicionarCliente()">Salvar</button>
-
-        <ul id="listaClientes"></ul>
     </div>
-    <script src="script.js"></script>
+
+    <!-- 🚀 APP -->
+    <div id="app" style="display:none;">
+
+        <div class="container">
+
+            <!-- HEADER -->
+            <header class="header">
+                <div>
+                    <h1>📊 Clientes</h1>
+                    <small>Controle de vencimentos</small>
+                </div>
+
+                <div class="header-actions">
+                    <button class="theme-toggle" onclick="toggleTema()">
+                        <i class="bi bi-moon-stars"></i>
+                    </button>
+                    <button class="logout" onclick="logout()">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- FORM -->
+            <section class="form">
+
+                <div class="input-group">
+                    <i class="bi bi-person"></i>
+                    <input id="nome" type="text" placeholder="Nome completo" />
+                </div>
+
+                <div class="input-group">
+                    <i class="bi bi-whatsapp"></i>
+                    <input id="contato" type="text" placeholder="WhatsApp / Contato" />
+                </div>
+
+                <div class="input-dia">
+                    <button onclick="diminuirDia()">−</button>
+                    <input type="text" id="dia" value="1" readonly />
+                    <button onclick="aumentarDia()">+</button>
+                </div>
+
+                <button class="btn" onclick="adicionarCliente()">
+                    <i class="bi bi-save"></i> Salvar cliente
+                </button>
+
+            </section>
+
+            <!-- LISTA -->
+            <section class="lista">
+                <ul id="listaClientes"></ul>
+            </section>
+
+        </div>
+
+    </div>
+
+    <script type="module" src="script.js"></script>
+
 </body>
 
 </html>
