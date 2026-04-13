@@ -280,13 +280,14 @@ function limparCampos() {
 // INIT
 // =========================
 function configurarEventos() {
-  el.btnLogin.addEventListener("click", login);
-  el.btnCadastrar.addEventListener("click", cadastrar);
-  el.btnTema.addEventListener("click", toggleTema);
-  el.btnLogout.addEventListener("click", logout);
-  el.btnDiminuirDia.addEventListener("click", diminuirDia);
-  el.btnAumentarDia.addEventListener("click", aumentarDia);
-  el.btnSalvar.addEventListener("click", adicionarCliente);
+  el.btnLogin?.addEventListener("click", login);
+  el.btnCadastrar?.addEventListener("click", cadastrar);
+  el.btnTema?.addEventListener("click", toggleTema);
+  el.btnLogout?.addEventListener("click", logout);
+
+  el.btnDiminuirDia?.addEventListener("click", diminuirDia);
+  el.btnAumentarDia?.addEventListener("click", aumentarDia);
+  el.btnSalvar?.addEventListener("click", adicionarCliente);
 }
 
 function init() {
