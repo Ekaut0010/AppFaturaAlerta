@@ -8,59 +8,113 @@
     font-family: "Inter", Arial, sans-serif;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
 body {
-    display: flex;
-    justify-content: center;
-    padding: 20px;
-    background: var(--bg);
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 25%),
+        radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.1), transparent 20%),
+        var(--bg);
     color: var(--text);
-    transition: all 0.3s ease;
+    transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* =========================
-   TEMA (DESIGN SYSTEM)
+   DESIGN TOKENS
 ========================= */
 :root {
     --bg: #0f172a;
-    --card: #1e293b;
-    --card-item: #273449;
+    --surface: #1e293b;
+    --surface-2: #273449;
+    --surface-3: #334155;
     --input: #334155;
-    --text: #f1f5f9;
+    --text: #f8fafc;
+    --text-soft: #cbd5e1;
+    --border: rgba(255, 255, 255, 0.08);
 
     --primary: #3b82f6;
     --primary-hover: #2563eb;
-
     --danger: #ef4444;
+    --danger-hover: #dc2626;
     --warning: #f59e0b;
+    --warning-hover: #d97706;
     --success: #22c55e;
+    --success-hover: #16a34a;
 
-    --radius: 14px;
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.28);
+    --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.22);
+    --shadow-sm: 0 6px 14px rgba(0, 0, 0, 0.16);
+
+    --radius-xl: 24px;
+    --radius-lg: 18px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+
+    --container-width: 1100px;
 }
 
-/* LIGHT MODE */
 .light {
     --bg: #f1f5f9;
-    --card: #ffffff;
-    --card-item: #f8fafc;
-    --input: #e2e8f0;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --surface-3: #e2e8f0;
+    --input: #edf2f7;
     --text: #0f172a;
+    --text-soft: #475569;
+    --border: rgba(15, 23, 42, 0.08);
 
-    --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 18px 45px rgba(15, 23, 42, 0.08);
+    --shadow-md: 0 10px 24px rgba(15, 23, 42, 0.08);
+    --shadow-sm: 0 6px 14px rgba(15, 23, 42, 0.06);
 }
 
 /* =========================
-   LAYOUT
+   APP WRAPPER
 ========================= */
+#app,
+#auth {
+    min-height: 100vh;
+    padding: 24px;
+}
+
+#app {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
 .container {
     width: 100%;
-    max-width: 420px;
-    background: var(--card);
-    padding: 22px;
-    border-radius: 20px;
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(10px);
-    animation: fadeIn 0.4s ease;
+    padding: 2rem;
+    max-width: var(--container-width);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+    animation: fadeIn 0.35s ease;
+}
+
+/* =========================
+   APP GRID
+========================= */
+.container {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+}
+
+.form-panel {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 92%, transparent), var(--surface));
+    border-right: 1px solid var(--border);
+    padding: 28px;
+}
+
+.list-panel {
+    padding: 28px;
 }
 
 /* =========================
@@ -69,135 +123,266 @@ body {
 .header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 18px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    gap: 16px;
 }
 
 .header h1 {
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 4px;
 }
 
 .header small {
-    font-size: 12px;
-    opacity: 0.6;
+    display: block;
+    color: var(--text-soft);
+    font-size: 0.92rem;
 }
 
-/* BOTÕES HEADER */
 .header-actions {
     display: flex;
-    gap: 8px;
+    gap: 10px;
 }
 
 .theme-toggle,
 .logout {
-    border: none;
-    background: var(--card-item);
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
     color: var(--text);
-    padding: 8px;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.theme-toggle:hover,
+.logout:hover {
+    transform: translateY(-1px);
 }
 
 .theme-toggle:hover {
-    transform: rotate(20deg);
+    background: var(--surface-3);
 }
 
 .logout:hover {
     background: var(--danger);
-    color: white;
+    color: #fff;
+    border-color: transparent;
 }
 
 /* =========================
-   INPUT COM ÍCONE
+   FORM
 ========================= */
+.form-title {
+    margin-bottom: 18px;
+}
+
+.form-title h2 {
+    font-size: 1.15rem;
+    margin-bottom: 4px;
+}
+
+.form-title p {
+    font-size: 0.92rem;
+    color: var(--text-soft);
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 .input-group {
     display: flex;
     align-items: center;
     background: var(--input);
-    border-radius: var(--radius);
-    padding: 0 10px;
-    margin-bottom: 10px;
-    transition: all 0.2s;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 0 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .input-group:focus-within {
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+    border-color: color-mix(in srgb, var(--primary) 60%, transparent);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
 }
 
 .input-group i {
-    opacity: 0.7;
-    margin-right: 8px;
+    color: var(--text-soft);
+    font-size: 1rem;
+    margin-right: 10px;
 }
 
 .input-group input {
     flex: 1;
     border: none;
-    background: transparent;
-    padding: 12px;
-    color: var(--text);
     outline: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.98rem;
+    padding: 14px 0;
+}
+
+.input-group input::placeholder {
+    color: var(--text-soft);
 }
 
 /* =========================
-   BOTÃO PRINCIPAL
+   INPUT DIA
 ========================= */
-.btn {
-    width: 100%;
-    padding: 12px;
-    border-radius: var(--radius);
-    border: none;
-    background: var(--primary);
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+.day-box {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px;
 }
 
-.btn:hover {
+.day-box-label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-soft);
+    margin-bottom: 10px;
+}
+
+.input-dia {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    gap: 10px;
+    align-items: center;
+}
+
+.input-dia input {
+    width: 100%;
+    height: 44px;
+    border: none;
+    outline: none;
+    border-radius: 12px;
+    background: var(--input);
+    color: var(--text);
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.input-dia button {
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 12px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.input-dia button:hover {
     background: var(--primary-hover);
     transform: translateY(-1px);
 }
 
-.btn:active {
-    transform: scale(0.97);
+.input-dia button:active {
+    transform: scale(0.96);
 }
 
 /* =========================
-   LISTA
+   PRIMARY BUTTON
 ========================= */
-ul {
-    list-style: none;
-    margin-top: 20px;
+.btn {
+    width: 100%;
+    border: none;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.98rem;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: var(--shadow-sm);
 }
 
-li {
-    background: var(--card-item);
-    padding: 14px;
-    border-radius: var(--radius);
-    margin-bottom: 12px;
-    line-height: 1.5;
+.btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.03);
+}
 
-    animation: fadeIn 0.3s ease;
-    transition: all 0.2s;
+.btn:active {
+    transform: scale(0.985);
+}
+
+/* =========================
+   LIST AREA
+========================= */
+.list-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+.list-topbar h3 {
+    font-size: 1.15rem;
+}
+
+.list-topbar p {
+    color: var(--text-soft);
+    font-size: 0.92rem;
+}
+
+ul {
+    list-style: none;
+}
+
+#listaClientes {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+/* =========================
+   CLIENT CARD
+========================= */
+li {
+    background: linear-gradient(180deg, var(--surface-2), color-mix(in srgb, var(--surface-2) 88%, black 12%));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    line-height: 1.6;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    animation: fadeIn 0.28s ease;
 }
 
 li:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
-/* =========================
-   STATUS
-========================= */
+li strong {
+    display: inline-block;
+    font-size: 1.02rem;
+    margin-bottom: 4px;
+}
+
 .status {
-    display: block;
-    font-weight: 600;
-    margin-top: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
 }
 
-/* BORDAS */
+/* borda lateral */
 .red {
     border-left: 5px solid var(--danger);
 }
@@ -215,168 +400,127 @@ li:hover {
 }
 
 /* =========================
-   BOTÕES AÇÕES
+   ACTION BUTTONS
 ========================= */
 .actions {
-    margin-top: 10px;
     display: flex;
-    gap: 6px;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
 }
 
 .actions button {
     border: none;
-    border-radius: 8px;
-    padding: 6px 10px;
+    border-radius: 12px;
+    padding: 8px 12px;
+    min-width: 42px;
     cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
-}
-
-.btn-success {
-    background: var(--success);
-    color: white;
-}
-
-.btn-danger {
-    background: var(--danger);
-    color: white;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+    transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
 }
 
 .actions button:hover {
     transform: translateY(-1px);
-    opacity: 0.9;
+    opacity: 0.96;
 }
 
 .actions button:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
 }
 
-.actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-/* BOTÃO BASE */
-.actions button {
-    border: none;
-    padding: 6px 10px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s ease;
-    color: white;
-}
-
-/* ✔ ENVIADO */
 .btn-check {
-    background: #22c55e;
-    /* verde */
+    background: var(--success);
 }
 
 .btn-check:hover {
-    background: #16a34a;
-    transform: scale(1.05);
+    background: var(--success-hover);
 }
 
-/* ✏ EDITAR */
 .btn-edit {
-    background: #3b82f6;
-    /* azul */
+    background: var(--primary);
 }
 
 .btn-edit:hover {
-    background: #2563eb;
-    transform: scale(1.05);
+    background: var(--primary-hover);
 }
 
-/* 🗑 DELETE */
 .btn-delete {
-    background: #ef4444;
-    /* vermelho */
+    background: var(--danger);
 }
 
 .btn-delete:hover {
-    background: #dc2626;
-    transform: scale(1.05);
-}
-
-/* clique */
-.actions button:active {
-    transform: scale(0.95);
+    background: var(--danger-hover);
 }
 
 /* =========================
-   INPUT DIA
-========================= */
-.input-dia {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.input-dia input {
-    width: 60px;
-    height: 42px;
-    text-align: center;
-    font-size: 16px;
-    border-radius: 10px;
-    border: none;
-    background: var(--input);
-    color: var(--text);
-}
-
-.input-dia button {
-    width: 42px;
-    height: 42px;
-    border: none;
-    border-radius: 10px;
-    font-size: 18px;
-    cursor: pointer;
-    background: var(--primary);
-    color: white;
-    transition: all 0.2s;
-}
-
-.input-dia button:hover {
-    transform: scale(1.1);
-}
-
-.input-dia button:active {
-    transform: scale(0.95);
-}
-
-/* =========================
-   LOGIN
+   AUTH
 ========================= */
 .auth-container {
-    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
 .auth-card {
-    background: var(--card);
-    padding: 30px;
-    border-radius: 20px;
     width: 100%;
-    max-width: 320px;
-    box-shadow: var(--shadow);
-    text-align: center;
+    max-width: 420px;
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(12px);
+    animation: fadeIn 0.35s ease;
 }
 
 .auth-card h2 {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+}
+
+.auth-card-subtitle {
+    color: var(--text-soft);
     margin-bottom: 20px;
+    font-size: 0.95rem;
+}
+
+.auth-card .btn {
+    margin-top: 6px;
 }
 
 .link {
-    margin-top: 10px;
-    font-size: 14px;
+    margin-top: 14px;
+    text-align: center;
     color: var(--primary);
+    font-size: 0.95rem;
+    font-weight: 600;
     cursor: pointer;
+    transition: opacity 0.18s ease;
+}
+
+.link:hover {
+    opacity: 0.8;
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-lg);
+    color: var(--text-soft);
+    background: color-mix(in srgb, var(--surface-2) 80%, transparent);
+}
+
+.empty-state i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    display: block;
+    opacity: 0.7;
 }
 
 /* =========================
@@ -385,7 +529,7 @@ li:hover {
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(12px);
+        transform: translateY(14px);
     }
 
     to {
@@ -395,14 +539,69 @@ li:hover {
 }
 
 /* =========================
-   MOBILE
+   TABLET
 ========================= */
-@media (max-width: 480px) {
-    body {
-        padding: 10px;
+@media (max-width: 900px) {
+    .container {
+        grid-template-columns: 1fr;
     }
 
-    .container {
-        padding: 16px;
+    .form-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+}
+
+/* =========================
+   MOBILE
+========================= */
+@media (max-width: 600px) {
+
+    #app,
+    #auth {
+        padding: 12px;
+    }
+
+    .container,
+    .auth-card {
+        border-radius: 20px;
+    }
+
+    .form-panel,
+    .list-panel,
+    .auth-card {
+        padding: 18px;
+    }
+
+    .header {
+        align-items: flex-start;
+    }
+
+    .header h1 {
+        font-size: 1.35rem;
+    }
+
+    .theme-toggle,
+    .logout {
+        width: 40px;
+        height: 40px;
+    }
+
+    .input-dia {
+        grid-template-columns: 40px 1fr 40px;
+    }
+
+    .input-dia button {
+        width: 40px;
+        height: 40px;
+    }
+
+    .actions {
+        gap: 6px;
+    }
+
+    .actions button {
+        flex: 1 1 auto;
+        justify-content: center;
     }
 }

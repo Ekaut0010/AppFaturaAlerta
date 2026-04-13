@@ -57,10 +57,15 @@ const el = {
   lista: document.getElementById("listaClientes"),
   auth: document.getElementById("auth"),
   app: document.getElementById("app"),
-
-  // 👇 FALTAVA ISSO
   email: document.getElementById("email"),
   senha: document.getElementById("senha"),
+  btnLogin: document.getElementById("btnLogin"),
+  btnCadastrar: document.getElementById("btnCadastrar"),
+  btnTema: document.getElementById("btnTema"),
+  btnLogout: document.getElementById("btnLogout"),
+  btnDiminuirDia: document.getElementById("btnDiminuirDia"),
+  btnAumentarDia: document.getElementById("btnAumentarDia"),
+  btnSalvar: document.getElementById("btnSalvar"),
 };
 // =========================
 // TEMA
@@ -230,20 +235,20 @@ function renderizarLista() {
     li.classList.add(status.cor);
 
     li.innerHTML = `
-      <strong>${cliente.nome}</strong><br>
-      📞 ${cliente.contato}<br>
-      📅 Dia ${cliente.diaVencimento}<br>
+  <strong>${cliente.nome}</strong><br>
+  📞 ${cliente.contato}<br>
+  📅 Dia ${cliente.diaVencimento}<br>
 
-      <span class="status" style="color:${status.cor}">
-        ${status.texto}
-      </span>
+  <span class="status" style="color:${status.cor}">
+    ${status.texto}
+  </span>
 
-      <div class="actions">
-  <button class="btn-check" onclick="marcarEnviado('${cliente.id}')">✔</button>
-  <button class="btn-edit" onclick="editarClientes('${cliente.id}')">✏</button>
-  <button class="btn-delete" onclick="removerCliente('${cliente.id}')">🗑</button>
-</div>
-    `;
+  <div class="actions">
+    <button class="btn-check" onclick="marcarEnviado('${cliente.id}')">✔</button>
+    <button class="btn-edit" onclick="editarClientes('${cliente.id}')">✏</button>
+    <button class="btn-delete" onclick="removerCliente('${cliente.id}')">🗑</button>
+  </div>
+`;
 
     el.lista.appendChild(li);
   });
@@ -274,22 +279,25 @@ function limparCampos() {
 // =========================
 // INIT
 // =========================
+function configurarEventos() {
+  el.btnLogin.addEventListener("click", login);
+  el.btnCadastrar.addEventListener("click", cadastrar);
+  el.btnTema.addEventListener("click", toggleTema);
+  el.btnLogout.addEventListener("click", logout);
+  el.btnDiminuirDia.addEventListener("click", diminuirDia);
+  el.btnAumentarDia.addEventListener("click", aumentarDia);
+  el.btnSalvar.addEventListener("click", adicionarCliente);
+}
+
 function init() {
   carregarTema();
+  configurarEventos();
 }
 
 init();
-
 // =========================
 // GLOBAL (necessário por causa do HTML)
 // =========================
-window.adicionarCliente = adicionarCliente;
-window.aumentarDia = aumentarDia;
-window.diminuirDia = diminuirDia;
-window.editarClientes = editarClientes;
-window.removerCliente = removerCliente;
 window.marcarEnviado = marcarEnviado;
-window.login = login;
-window.cadastrar = cadastrar;
-window.logout = logout;
-window.toggleTema = toggleTema;
+window.removerCliente = removerCliente;
+window.editarClientes = editarClientes;

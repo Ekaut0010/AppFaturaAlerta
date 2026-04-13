@@ -4,96 +4,114 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <title>Alerta de Faturas</title>
 
     <link rel="stylesheet" href="style.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="icon" href="data:," />
 </head>
 
 <body>
-
-    <!-- 🔐 LOGIN -->
+    <!-- LOGIN -->
     <div id="auth" class="auth-container">
         <div class="auth-card">
-
             <h2>🔐 Entrar</h2>
+            <p class="auth-card-subtitle">Acesse sua conta para gerenciar seus clientes</p>
 
             <div class="input-group">
                 <i class="bi bi-envelope"></i>
-                <input id="email" placeholder="Email">
+                <input id="email" type="email" placeholder="Email" />
             </div>
 
             <div class="input-group">
                 <i class="bi bi-lock"></i>
-                <input id="senha" type="password" placeholder="Senha">
+                <input id="senha" type="password" placeholder="Senha" />
             </div>
 
-            <button class="btn" onclick="login()">Entrar</button>
-
-            <p class="link" onclick="cadastrar()">Criar conta</p>
-
+            <button class="btn" id="btnLogin" type="button">Entrar</button>
+            <p class="link" id="btnCadastrar">Criar conta</p>
         </div>
     </div>
 
-    <!-- 🚀 APP -->
-    <div id="app" style="display:none;">
-
+    <!-- APP -->
+    <div id="app" style="display: none;">
         <div class="container">
+            <!-- PAINEL ESQUERDO -->
+            <section class="form-panel">
+                <header class="header">
+                    <div>
+                        <h1>📊 Clientes</h1>
+                        <small>Controle de vencimentos</small>
+                    </div>
 
-            <!-- HEADER -->
-            <header class="header">
-                <div>
-                    <h1>📊 Clientes</h1>
-                    <small>Controle de vencimentos</small>
+                    <div class="header-actions">
+                        <button class="theme-toggle" id="btnTema" type="button">
+                            <i class="bi bi-moon-stars"></i>
+                        </button>
+
+                        <button class="logout" id="btnLogout" type="button">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="form-title">
+                    <h2>Novo cliente</h2>
+                    <p>Cadastre e acompanhe vencimentos mensais</p>
                 </div>
 
-                <div class="header-actions">
-                    <button class="theme-toggle" onclick="toggleTema()">
-                        <i class="bi bi-moon-stars"></i>
+                <section class="form">
+                    <div class="input-group">
+                        <i class="bi bi-person"></i>
+                        <input id="nome" type="text" placeholder="Nome completo" />
+                    </div>
+
+                    <div class="input-group">
+                        <i class="bi bi-whatsapp"></i>
+                        <input id="contato" type="text" placeholder="WhatsApp / Contato" />
+                    </div>
+
+                    <div class="day-box">
+                        <span class="day-box-label">Dia do vencimento</span>
+
+                        <div class="input-dia">
+                            <button id="btnDiminuirDia" type="button">−</button>
+                            <input type="text" id="dia" value="1" readonly />
+                            <button id="btnAumentarDia" type="button">+</button>
+                        </div>
+                    </div>
+
+                    <button class="btn" id="btnSalvar" type="button">
+                        <i class="bi bi-save"></i> Salvar cliente
                     </button>
-                    <button class="logout" onclick="logout()">
-                        <i class="bi bi-box-arrow-right"></i>
-                    </button>
-                </div>
-            </header>
-
-            <!-- FORM -->
-            <section class="form">
-
-                <div class="input-group">
-                    <i class="bi bi-person"></i>
-                    <input id="nome" type="text" placeholder="Nome completo" />
-                </div>
-
-                <div class="input-group">
-                    <i class="bi bi-whatsapp"></i>
-                    <input id="contato" type="text" placeholder="WhatsApp / Contato" />
-                </div>
-
-                <div class="input-dia">
-                    <button onclick="diminuirDia()">−</button>
-                    <input type="text" id="dia" value="1" readonly />
-                    <button onclick="aumentarDia()">+</button>
-                </div>
-
-                <button class="btn" onclick="adicionarCliente()">
-                    <i class="bi bi-save"></i> Salvar cliente
-                </button>
-
+                </section>
             </section>
 
-            <!-- LISTA -->
-            <section class="lista">
-                <ul id="listaClientes"></ul>
-            </section>
+            <!-- PAINEL DIREITO -->
+            <section class="list-panel">
+                <div class="list-topbar">
+                    <div>
+                        <h3>Clientes cadastrados</h3>
+                        <p>Acompanhe vencimentos e marque envios</p>
+                    </div>
+                </div>
 
+                <section class="lista">
+                    <ul id="listaClientes">
+                        <!-- Exemplo de estado vazio -->
+                        <!--
+            <div class="empty-state">
+              <i class="bi bi-inbox"></i>
+              <p>Nenhum cliente cadastrado ainda.</p>
+            </div>
+            -->
+                    </ul>
+                </section>
+            </section>
         </div>
-
     </div>
 
-    <script type="module" src="script.js"></script>
-
+    <script type="module" src="./script.js"></script>
 </body>
 
 </html>
