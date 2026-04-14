@@ -1,27 +1,27 @@
 {
-  "name": "AppFaturaAlerta",
-  "short_name": "Faturas",
+  "name": "PayTrack",
+  "short_name": "PayTrack",
   "description": "Controle de clientes e vencimentos recorrentes com alertas inteligentes.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",
-  "theme_color": "#3b82f6",
-  "orientation": "portrait",
+  "theme_color": "#0f172a",
+  "display": "standalone",
   "lang": "pt-BR",
   "icons": [
     {
-      "src": "./icons/4527d82a-3402-41cf-99f8-e2fbed10053d.png",
+      "src": ".icons/icon_22.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "./icons/4527d82a-3402-41cf-99f8-e2fbed10053d.png",
+      "src": "./icons/icon_66.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "./icons/4527d82a-3402-41cf-99f8-e2fbed10053d.png",
+      "src": "./icons/icon_66.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

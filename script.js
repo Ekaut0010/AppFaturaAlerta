@@ -81,6 +81,21 @@ const el = {
 // =========================
 // TEMA
 // =========================
+function setLoadingGlobal() {
+  const loader = document.createElement("div");
+  loader.className = "app-loader";
+  loader.innerHTML = "Carregando...";
+  document.body.appendChild(loader);
+}
+
+function removeLoadingGlobal() {
+  document.querySelector(".app-loader")?.remove();
+}
+
+window.addEventListener("load", () => {
+  document.body.classList.add("loaded");
+});
+
 function toggleTema() {
   document.body.classList.toggle("light");
   const tema = document.body.classList.contains("light") ? "light" : "dark";
