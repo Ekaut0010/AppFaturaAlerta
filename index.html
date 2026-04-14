@@ -4,40 +4,68 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <title>Alerta de Faturas</title>
 
+    <!-- SEO básico -->
+    <meta name="description" content="Controle de vencimentos de clientes com alertas automáticos" />
+
+    <!-- CSS -->
     <link rel="stylesheet" href="style.css" />
+
+    <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+
+    <!-- Favicon vazio (evita erro 404) -->
     <link rel="icon" href="data:," />
 </head>
 
 <body>
-    <!-- LOGIN -->
-    <div id="auth" class="auth-container">
-        <div class="auth-card">
+
+    <!-- =========================
+       LOGIN
+  ========================== -->
+    <main id="auth" class="auth-container">
+        <section class="auth-card">
             <h2>🔐 Entrar</h2>
-            <p class="auth-card-subtitle">Acesse sua conta para gerenciar seus clientes</p>
+            <p class="auth-card-subtitle">
+                Acesse sua conta para gerenciar seus clientes
+            </p>
 
-            <div class="input-group">
-                <i class="bi bi-envelope"></i>
-                <input id="email" type="email" placeholder="Email" />
-            </div>
+            <form id="formLogin" autocomplete="on">
+                <div class="input-group">
+                    <i class="bi bi-envelope"></i>
+                    <input id="email" type="email" placeholder="Email" required />
+                </div>
 
-            <div class="input-group">
-                <i class="bi bi-lock"></i>
-                <input id="senha" type="password" placeholder="Senha" />
-            </div>
+                <div class="input-group">
+                    <i class="bi bi-lock"></i>
+                    <input id="senha" type="password" placeholder="Senha" required />
+                </div>
 
-            <button class="btn" id="btnLogin" type="button">Entrar</button>
-            <p class="link" id="btnCadastrar">Criar conta</p>
-        </div>
-    </div>
+                <button class="btn" id="btnLogin" type="submit">
+                    Entrar
+                </button>
+            </form>
 
-    <!-- APP -->
-    <div id="app" style="display: none;">
+            <p class="link" id="btnCadastrar">
+                Criar conta
+            </p>
+        </section>
+    </main>
+
+    <!-- =========================
+       APP
+  ========================== -->
+    <main id="app" style="display: none;">
         <div class="container">
-            <!-- PAINEL ESQUERDO -->
+
+            <!-- =========================
+           FORM PANEL
+      ========================== -->
             <section class="form-panel">
+
+                <!-- HEADER -->
                 <header class="header">
                     <div>
                         <h1>📊 Clientes</h1>
@@ -45,50 +73,61 @@
                     </div>
 
                     <div class="header-actions">
-                        <button class="theme-toggle" id="btnTema" type="button">
+                        <button class="theme-toggle" id="btnTema" type="button" title="Alterar tema">
                             <i class="bi bi-moon-stars"></i>
                         </button>
 
-                        <button class="logout" id="btnLogout" type="button">
+                        <button class="logout" id="btnLogout" type="button" title="Sair">
                             <i class="bi bi-box-arrow-right"></i>
                         </button>
                     </div>
                 </header>
 
+                <!-- FORM TITLE -->
                 <div class="form-title">
                     <h2>Novo cliente</h2>
                     <p>Cadastre e acompanhe vencimentos mensais</p>
                 </div>
 
-                <section class="form">
+                <!-- FORM -->
+                <form class="form" id="formCliente">
+
                     <div class="input-group">
                         <i class="bi bi-person"></i>
-                        <input id="nome" type="text" placeholder="Nome completo" />
+                        <input id="nome" type="text" placeholder="Nome completo" required />
                     </div>
 
                     <div class="input-group">
                         <i class="bi bi-whatsapp"></i>
-                        <input id="contato" type="text" placeholder="WhatsApp / Contato" />
+                        <input id="contato" type="text" placeholder="WhatsApp / Contato" required />
                     </div>
 
+                    <!-- DIA -->
                     <div class="day-box">
-                        <span class="day-box-label">Dia do vencimento</span>
+                        <label class="day-box-label">Dia do vencimento</label>
 
                         <div class="input-dia">
                             <button id="btnDiminuirDia" type="button">−</button>
+
                             <input type="text" id="dia" value="1" readonly />
+
                             <button id="btnAumentarDia" type="button">+</button>
                         </div>
                     </div>
 
-                    <button class="btn" id="btnSalvar" type="button">
+                    <button class="btn" id="btnSalvar" type="submit">
                         <i class="bi bi-save"></i> Salvar cliente
                     </button>
-                </section>
+
+                </form>
+
             </section>
 
-            <!-- PAINEL DIREITO -->
+            <!-- =========================
+           LIST PANEL
+      ========================== -->
             <section class="list-panel">
+
                 <div class="list-topbar">
                     <div>
                         <h3>Clientes cadastrados</h3>
@@ -97,21 +136,17 @@
                 </div>
 
                 <section class="lista">
-                    <ul id="listaClientes">
-                        <!-- Exemplo de estado vazio -->
-                        <!--
-            <div class="empty-state">
-              <i class="bi bi-inbox"></i>
-              <p>Nenhum cliente cadastrado ainda.</p>
-            </div>
-            -->
-                    </ul>
+                    <ul id="listaClientes"></ul>
                 </section>
-            </section>
-        </div>
-    </div>
 
+            </section>
+
+        </div>
+    </main>
+
+    <!-- JS -->
     <script type="module" src="./script.js"></script>
+
 </body>
 
 </html>
