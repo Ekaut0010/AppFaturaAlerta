@@ -4,27 +4,17 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <title>Alerta de Faturas</title>
 
-    <!-- SEO básico -->
     <meta name="description" content="Controle de vencimentos de clientes com alertas automáticos" />
 
-    <!-- CSS -->
     <link rel="stylesheet" href="style.css" />
-
-    <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
-
-    <!-- Favicon vazio (evita erro 404) -->
     <link rel="icon" href="data:," />
 </head>
 
 <body>
-
-    <!-- =========================
-       LOGIN
-  ========================== -->
+    <!-- LOGIN -->
     <main id="auth" class="auth-container">
         <section class="auth-card">
             <h2>🔐 Entrar</h2>
@@ -34,13 +24,14 @@
 
             <form id="formLogin" autocomplete="on">
                 <div class="input-group">
-                    <i class="bi bi-envelope"></i>
-                    <input id="email" type="email" placeholder="Email" required />
+                    <i class="bi bi-envelope" aria-hidden="true"></i>
+                    <input id="email" name="email" type="email" placeholder="Email" autocomplete="email" required />
                 </div>
 
                 <div class="input-group">
-                    <i class="bi bi-lock"></i>
-                    <input id="senha" type="password" placeholder="Senha" required />
+                    <i class="bi bi-lock" aria-hidden="true"></i>
+                    <input id="senha" name="senha" type="password" placeholder="Senha" autocomplete="current-password"
+                        required />
                 </div>
 
                 <button class="btn" id="btnLogin" type="submit">
@@ -48,24 +39,17 @@
                 </button>
             </form>
 
-            <p class="link" id="btnCadastrar">
+            <button class="link" id="btnCadastrar" type="button">
                 Criar conta
-            </p>
+            </button>
         </section>
     </main>
 
-    <!-- =========================
-       APP
-  ========================== -->
-    <main id="app" style="display: none;">
+    <!-- APP -->
+    <main id="app" hidden>
         <div class="container">
-
-            <!-- =========================
-           FORM PANEL
-      ========================== -->
+            <!-- FORM PANEL -->
             <section class="form-panel">
-
-                <!-- HEADER -->
                 <header class="header">
                     <div>
                         <h1>📊 Clientes</h1>
@@ -73,61 +57,60 @@
                     </div>
 
                     <div class="header-actions">
-                        <button class="theme-toggle" id="btnTema" type="button" title="Alterar tema">
-                            <i class="bi bi-moon-stars"></i>
+                        <button class="theme-toggle" id="btnTema" type="button" title="Alterar tema"
+                            aria-label="Alterar tema">
+                            <i class="bi bi-moon-stars" aria-hidden="true"></i>
                         </button>
 
-                        <button class="logout" id="btnLogout" type="button" title="Sair">
-                            <i class="bi bi-box-arrow-right"></i>
+                        <button class="logout" id="btnLogout" type="button" title="Sair" aria-label="Sair">
+                            <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
                         </button>
                     </div>
                 </header>
 
-                <!-- FORM TITLE -->
                 <div class="form-title">
                     <h2>Novo cliente</h2>
                     <p>Cadastre e acompanhe vencimentos mensais</p>
                 </div>
 
-                <!-- FORM -->
                 <form class="form" id="formCliente">
-
                     <div class="input-group">
-                        <i class="bi bi-person"></i>
-                        <input id="nome" type="text" placeholder="Nome completo" required />
+                        <i class="bi bi-person" aria-hidden="true"></i>
+                        <input id="nome" name="nome" type="text" placeholder="Nome completo" autocomplete="name"
+                            required />
                     </div>
 
                     <div class="input-group">
-                        <i class="bi bi-whatsapp"></i>
-                        <input id="contato" type="text" placeholder="WhatsApp / Contato" required />
+                        <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                        <input id="contato" name="contato" type="text" placeholder="WhatsApp / Contato" inputmode="tel"
+                            required />
                     </div>
 
-                    <!-- DIA -->
                     <div class="day-box">
-                        <label class="day-box-label">Dia do vencimento</label>
+                        <label class="day-box-label" for="dia">Dia do vencimento</label>
 
                         <div class="input-dia">
-                            <button id="btnDiminuirDia" type="button">−</button>
+                            <button id="btnDiminuirDia" type="button" aria-label="Diminuir dia">
+                                −
+                            </button>
 
-                            <input type="text" id="dia" value="1" readonly />
+                            <input type="text" id="dia" name="dia" value="1" readonly aria-label="Dia do vencimento" />
 
-                            <button id="btnAumentarDia" type="button">+</button>
+                            <button id="btnAumentarDia" type="button" aria-label="Aumentar dia">
+                                +
+                            </button>
                         </div>
                     </div>
 
                     <button class="btn" id="btnSalvar" type="submit">
-                        <i class="bi bi-save"></i> Salvar cliente
+                        <i class="bi bi-save" aria-hidden="true"></i>
+                        <span>Salvar cliente</span>
                     </button>
-
                 </form>
-
             </section>
 
-            <!-- =========================
-           LIST PANEL
-      ========================== -->
+            <!-- LIST PANEL -->
             <section class="list-panel">
-
                 <div class="list-topbar">
                     <div>
                         <h3>Clientes cadastrados</h3>
@@ -138,15 +121,11 @@
                 <section class="lista">
                     <ul id="listaClientes"></ul>
                 </section>
-
             </section>
-
         </div>
     </main>
 
-    <!-- JS -->
     <script type="module" src="./script.js"></script>
-
 </body>
 
 </html>

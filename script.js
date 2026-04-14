@@ -2,7 +2,6 @@
 // FIREBASE
 // =========================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-
 import {
   getFirestore,
   collection,
@@ -15,7 +14,6 @@ import {
   where,
   setDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -23,7 +21,6 @@ import {
   onAuthStateChanged,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
 import {
   getMessaging,
   getToken,
@@ -57,147 +54,221 @@ let editandoId = null;
 // DOM
 // =========================
 const el = {
+  auth: document.getElementById("auth"),
+  app: document.getElementById("app"),
+
+  formLogin: document.getElementById("formLogin"),
+  formCliente: document.getElementById("formCliente"),
+
+  email: document.getElementById("email"),
+  senha: document.getElementById("senha"),
+
   nome: document.getElementById("nome"),
   contato: document.getElementById("contato"),
   dia: document.getElementById("dia"),
+
   lista: document.getElementById("listaClientes"),
-  auth: document.getElementById("auth"),
-  app: document.getElementById("app"),
-  email: document.getElementById("email"),
-  senha: document.getElementById("senha"),
-  btnLogin: document.getElementById("btnLogin"),
+
   btnCadastrar: document.getElementById("btnCadastrar"),
-  btnTema: document.getElementById("btnTema"),
   btnLogout: document.getElementById("btnLogout"),
+  btnTema: document.getElementById("btnTema"),
   btnDiminuirDia: document.getElementById("btnDiminuirDia"),
   btnAumentarDia: document.getElementById("btnAumentarDia"),
   btnSalvar: document.getElementById("btnSalvar"),
 };
 
 // =========================
-// UI / TEMA
+// TEMA
 // =========================
 function toggleTema() {
   document.body.classList.toggle("light");
-  localStorage.setItem(
-    "tema",
-    document.body.classList.contains("light") ? "light" : "dark",
-  );
+  const tema = document.body.classList.contains("light") ? "light" : "dark";
+  localStorage.setItem("tema", tema);
 }
 
 function carregarTema() {
-  if (localStorage.getItem("tema") === "light") {
+  const temaSalvo = localStorage.getItem("tema");
+  if (temaSalvo === "light") {
     document.body.classList.add("light");
   }
+}
+
+// =========================
+// TOAST
+// =========================
+function mostrarToast(mensagem, erro = false) {
+  const toast = document.createElement("div");
+  toast.className = `toast ${erro ? "error" : ""}`.trim();
+  toast.textContent = mensagem;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    setTimeout(() => toast.remove(), 200);
+  }, 2200);
+}
+
+// =========================
+// LOADING
+// =========================
+function setLoading(ativo) {
+  if (!el.btnSalvar) return;
+
+  if (ativo) {
+    el.btnSalvar.classList.add("loading");
+    el.btnSalvar.disabled = true;
+    el.btnSalvar.dataset.originalText = el.btnSalvar.innerHTML;
+    el.btnSalvar.innerHTML = "Salvando...";
+    return;
+  }
+
+  el.btnSalvar.classList.remove("loading");
+  el.btnSalvar.disabled = false;
+  el.btnSalvar.innerHTML =
+    el.btnSalvar.dataset.originalText ||
+    '<i class="bi bi-save"></i> Salvar cliente';
+}
+
+// =========================
+// UTIL
+// =========================
+function limparCampos() {
+  el.nome.value = "";
+  el.contato.value = "";
+  el.dia.value = "1";
+}
+
+function aumentarDia() {
+  const valor = Number(el.dia.value) || 1;
+  if (valor < 31) {
+    el.dia.value = String(valor + 1);
+  }
+}
+
+function diminuirDia() {
+  const valor = Number(el.dia.value) || 1;
+  if (valor > 1) {
+    el.dia.value = String(valor - 1);
+  }
+}
+
+function obterStatus(cliente) {
+  const hoje = new Date().getDate();
+
+  if (cliente.mensagemEnviada) {
+    return { texto: "Resolvido", cor: "green" };
+  }
+
+  if (cliente.diaVencimento === hoje) {
+    return { texto: "Hoje", cor: "orange" };
+  }
+
+  if (cliente.diaVencimento < hoje) {
+    return { texto: "Atrasado", cor: "red" };
+  }
+
+  return { texto: "Em dia", cor: "blue" };
 }
 
 // =========================
 // AUTH
 // =========================
 async function cadastrar() {
+  const email = el.email.value.trim();
+  const senha = el.senha.value.trim();
+
+  if (!email || !senha) {
+    return mostrarToast("Preencha email e senha", true);
+  }
+
   try {
-    const cred = await createUserWithEmailAndPassword(
-      auth,
-      el.email.value.trim(),
-      el.senha.value.trim(),
-    );
+    const cred = await createUserWithEmailAndPassword(auth, email, senha);
 
     await setDoc(doc(db, "users", cred.user.uid), {
       email: cred.user.email,
       fcmToken: null,
+      createdAt: new Date().toISOString(),
     });
 
-    alert("Conta criada!");
-  } catch (e) {
-    alert(e.message);
+    mostrarToast("Conta criada com sucesso");
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast(erro.message || "Erro ao criar conta", true);
   }
 }
 
 async function login() {
+  const email = el.email.value.trim();
+  const senha = el.senha.value.trim();
+
+  if (!email || !senha) {
+    return mostrarToast("Preencha email e senha", true);
+  }
+
   try {
-    await signInWithEmailAndPassword(
-      auth,
-      el.email.value.trim(),
-      el.senha.value.trim(),
-    );
-  } catch (e) {
-    alert(e.message);
+    await signInWithEmailAndPassword(auth, email, senha);
+    mostrarToast("Login realizado");
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast(erro.message || "Erro ao entrar", true);
   }
 }
 
-function logout() {
-  signOut(auth);
+async function logout() {
+  try {
+    await signOut(auth);
+    mostrarToast("Sessão encerrada");
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast("Erro ao sair", true);
+  }
 }
 
 // =========================
 // NOTIFICAÇÕES
 // =========================
 async function ativarNotificacao() {
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") return;
+  if (!("Notification" in window)) return;
+  if (!auth.currentUser) return;
 
-  const token = await getToken(messaging, {
-    vapidKey: "SUA_VAPID_KEY",
-  });
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return;
 
-  if (!token || !auth.currentUser) return;
+    const token = await getToken(messaging, {
+      vapidKey: "SUA_VAPID_KEY",
+    });
 
-  await setDoc(
-    doc(db, "users", auth.currentUser.uid),
-    { fcmToken: token },
-    { merge: true },
-  );
+    if (!token) return;
+
+    await setDoc(
+      doc(db, "users", auth.currentUser.uid),
+      { fcmToken: token },
+      { merge: true },
+    );
+  } catch (erro) {
+    console.error("Erro ao ativar notificações:", erro);
+  }
 }
 
 function escutarNotificacao() {
   onMessage(messaging, (payload) => {
-    new Notification(payload.notification.title, {
-      body: payload.notification.body,
-    });
+    const titulo = payload.notification?.title || "Notificação";
+    const corpo = payload.notification?.body || "";
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(titulo, { body: corpo });
+      return;
+    }
+
+    mostrarToast(`${titulo}${corpo ? ` - ${corpo}` : ""}`);
   });
 }
 
-function setLoading(estado) {
-  if (estado) {
-    el.btnSalvar.classList.add("loading");
-    el.btnSalvar.dataset.text = el.btnSalvar.innerHTML;
-    el.btnSalvar.innerHTML = "Salvando...";
-  } else {
-    el.btnSalvar.classList.remove("loading");
-    el.btnSalvar.innerHTML = el.btnSalvar.dataset.text;
-  }
-}
 // =========================
 // CLIENTES
 // =========================
-async function salvarCliente() {
-  const nome = el.nome.value.trim();
-  const contato = el.contato.value.trim();
-  const dia = Number(el.dia.value);
-
-  if (!nome || !contato || !dia) {
-    return mostrarToast("Preencha todos os campos", true);
-  }
-
-  setLoading(true);
-
-  try {
-    if (editandoId) {
-      await atualizarCliente(nome, contato, dia);
-    } else {
-      await criarCliente(nome, contato, dia);
-    }
-
-    limparCampos();
-    el.nome.focus();
-  } catch (erro) {
-    console.error(erro);
-    mostrarToast("Erro ao salvar cliente", true);
-  } finally {
-    setLoading(false);
-  }
-}
-
 async function criarCliente(nome, contato, dia) {
   if (!auth.currentUser) {
     throw new Error("Usuário não autenticado.");
@@ -230,171 +301,145 @@ async function atualizarCliente(nome, contato, dia) {
   mostrarToast("Cliente atualizado");
 }
 
+async function salvarCliente() {
+  const nome = el.nome.value.trim();
+  const contato = el.contato.value.trim();
+  const dia = Number(el.dia.value);
+
+  if (!nome || !contato || !dia) {
+    return mostrarToast("Preencha todos os campos", true);
+  }
+
+  setLoading(true);
+
+  try {
+    if (editandoId) {
+      await atualizarCliente(nome, contato, dia);
+    } else {
+      await criarCliente(nome, contato, dia);
+    }
+
+    limparCampos();
+    el.nome.focus();
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast(erro.message || "Erro ao salvar cliente", true);
+  } finally {
+    setLoading(false);
+  }
+}
+
 function escutarClientes(uid) {
   const q = query(collection(db, "clientes"), where("uid", "==", uid));
 
   onSnapshot(q, (snap) => {
-    clientes = snap.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
+    clientes = snap.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data(),
     }));
 
     renderizarLista();
   });
 }
-// =========================
-// TOAST
-// =========================
 
-function mostrarToast(msg, erro = false) {
-  const toast = document.createElement("div");
-  toast.className = `toast ${erro ? "error" : ""}`;
-  toast.textContent = msg;
+async function remover(id) {
+  if (!confirm("Excluir este cliente?")) return;
 
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    setTimeout(() => toast.remove(), 200);
-  }, 2200);
+  try {
+    await deleteDoc(doc(db, "clientes", id));
+    mostrarToast("Cliente removido");
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast("Erro ao remover cliente", true);
+  }
 }
-// =========================
-// STATUS
-// =========================
-function obterStatus(c) {
-  const hoje = new Date().getDate();
 
-  if (c.mensagemEnviada) return { txt: "Resolvido", cor: "green" };
-  if (c.diaVencimento === hoje) return { txt: "Hoje", cor: "orange" };
-  if (c.diaVencimento < hoje) return { txt: "Atrasado", cor: "red" };
+async function marcarEnviado(id) {
+  const nomePessoa = prompt("Quem enviou?");
+  if (!nomePessoa) return;
 
-  return { txt: "Em dia", cor: "blue" };
+  try {
+    await updateDoc(doc(db, "clientes", id), {
+      mensagemEnviada: true,
+      enviadoPor: nomePessoa.trim(),
+    });
+
+    mostrarToast("Marcado como resolvido");
+  } catch (erro) {
+    console.error(erro);
+    mostrarToast("Erro ao atualizar cliente", true);
+  }
+}
+
+function editar(id) {
+  const cliente = clientes.find((item) => item.id === id);
+  if (!cliente) return;
+
+  el.nome.value = cliente.nome;
+  el.contato.value = cliente.contato;
+  el.dia.value = String(cliente.diaVencimento);
+  editandoId = id;
+
+  el.nome.focus();
+  mostrarToast("Modo edição ativado");
 }
 
 // =========================
 // RENDER
 // =========================
+function renderizarEstadoVazio() {
+  el.lista.innerHTML = `
+    <div class="empty-state">
+      <i class="bi bi-inbox"></i>
+      <p>Nenhum cliente cadastrado.</p>
+    </div>
+  `;
+}
+
+function criarCardCliente(cliente) {
+  const status = obterStatus(cliente);
+
+  const li = document.createElement("li");
+  li.className = status.cor;
+
+  li.innerHTML = `
+    <strong>${cliente.nome}</strong><br>
+    📞 ${cliente.contato}<br>
+    📅 Dia ${cliente.diaVencimento}<br>
+
+    <span class="status">${status.texto}</span>
+
+    <div class="actions">
+      <button class="btn-check" data-id="${cliente.id}" type="button">✔</button>
+      <button class="btn-edit" data-id="${cliente.id}" type="button">✏</button>
+      <button class="btn-delete" data-id="${cliente.id}" type="button">🗑</button>
+    </div>
+  `;
+
+  return li;
+}
+
 function renderizarLista() {
   el.lista.innerHTML = "";
 
   if (clientes.length === 0) {
-    el.lista.innerHTML = `<div class="empty-state">Sem clientes</div>`;
-    return;
+    return renderizarEstadoVazio();
   }
 
   const fragment = document.createDocumentFragment();
 
-  clientes.forEach((c) => {
-    const s = obterStatus(c);
-
-    const li = document.createElement("li");
-    li.className = s.cor;
-
-    li.innerHTML = `
-      <strong>${c.nome}</strong><br>
-      📞 ${c.contato}<br>
-      📅 Dia ${c.diaVencimento}<br>
-
-      <span class="status">${s.txt}</span>
-
-      <div class="actions">
-        <button class="btn-check" data-id="${c.id}">✔</button>
-        <button class="btn-edit" data-id="${c.id}">✏</button>
-        <button class="btn-delete" data-id="${c.id}">🗑</button>
-      </div>
-    `;
-
-    fragment.appendChild(li);
+  clientes.forEach((cliente) => {
+    fragment.appendChild(criarCardCliente(cliente));
   });
 
   el.lista.appendChild(fragment);
 }
 
 // =========================
-// AÇÕES
-// =========================
-async function remover(id) {
-  if (!confirm("Excluir?")) return;
-  await deleteDoc(doc(db, "clientes", id));
-}
-
-async function marcarEnviado(id) {
-  const nome = prompt("Quem enviou?");
-  if (!nome) return;
-
-  await updateDoc(doc(db, "clientes", id), {
-    mensagemEnviada: true,
-    enviadoPor: nome,
-  });
-}
-
-function editar(id) {
-  const c = clientes.find((x) => x.id === id);
-
-  el.nome.value = c.nome;
-  el.contato.value = c.contato;
-  el.dia.value = c.diaVencimento;
-
-  editandoId = id;
-}
-
-// =========================
-// UTIL
-// =========================
-function limparCampos() {
-  el.nome.value = "";
-  el.contato.value = "";
-  el.dia.value = "1";
-}
-
-function aumentarDia() {
-  const v = Number(el.dia.value);
-  if (v < 31) el.dia.value = v + 1;
-}
-
-function diminuirDia() {
-  const v = Number(el.dia.value);
-  if (v > 1) el.dia.value = v - 1;
-}
-
-// =========================
 // EVENTOS
 // =========================
-// =========================
-// EVENTOS (PROFISSIONAL)
-// =========================
-function bindEvents() {
-  // LOGIN
-  document.getElementById("formLogin").addEventListener("submit", (e) => {
-    e.preventDefault();
-    login();
-  });
-
-  // CADASTRO
-  el.btnCadastrar.addEventListener("click", cadastrar);
-
-  // LOGOUT
-  el.btnLogout.addEventListener("click", logout);
-
-  // FORM CLIENTE
-  document.getElementById("formCliente").addEventListener("submit", (e) => {
-    e.preventDefault();
-    salvarCliente();
-  });
-
-  // DIA
-  el.btnAumentarDia.addEventListener("click", aumentarDia);
-  el.btnDiminuirDia.addEventListener("click", diminuirDia);
-
-  // TEMA
-  el.btnTema.addEventListener("click", toggleTema);
-
-  // 🔥 EVENT DELEGATION (IMPORTANTE)
-  el.lista.addEventListener("click", handleListaClick);
-}
-
-function handleListaClick(e) {
-  const btn = e.target.closest("button");
+function handleListaClick(event) {
+  const btn = event.target.closest("button");
   if (!btn) return;
 
   const id = btn.dataset.id;
@@ -412,26 +457,53 @@ function handleListaClick(e) {
     return marcarEnviado(id);
   }
 }
+
+function bindEvents() {
+  el.formLogin?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    login();
+  });
+
+  el.formCliente?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    salvarCliente();
+  });
+
+  el.btnCadastrar?.addEventListener("click", cadastrar);
+  el.btnLogout?.addEventListener("click", logout);
+  el.btnTema?.addEventListener("click", toggleTema);
+  el.btnAumentarDia?.addEventListener("click", aumentarDia);
+  el.btnDiminuirDia?.addEventListener("click", diminuirDia);
+  el.lista?.addEventListener("click", handleListaClick);
+}
+
 // =========================
 // INIT
 // =========================
 function init() {
   carregarTema();
   bindEvents();
+  escutarNotificacao();
 }
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
+    el.auth.hidden = true;
+    el.app.hidden = false;
+
     el.auth.style.display = "none";
     el.app.style.display = "block";
 
     escutarClientes(user.uid);
-    escutarNotificacao();
     await ativarNotificacao();
-  } else {
-    el.auth.style.display = "block";
-    el.app.style.display = "none";
+    return;
   }
+
+  el.auth.hidden = false;
+  el.app.hidden = true;
+
+  el.auth.style.display = "flex";
+  el.app.style.display = "none";
 });
 
 init();
