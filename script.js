@@ -15,6 +15,7 @@ import {
   setDoc,
   getDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -22,6 +23,7 @@ import {
   onAuthStateChanged,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
 import {
   getMessaging,
   getToken,
@@ -40,16 +42,20 @@ const firebaseConfig = {
   appId: "1:120182099403:web:7f313c0713f582de71fa4e",
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const messaging = getMessaging(app);
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);
+const messaging = getMessaging(firebaseApp);
 
 // =========================
 // ESTADO
 // =========================
 let clientes = [];
 let editandoId = null;
+let unsubscribeClientes = null;
+let deferredPrompt = null;
+let swRegistration = null;
+let intervaloCobrancas = null;
 
 // =========================
 // DOM
@@ -76,15 +82,39 @@ const el = {
   btnDiminuirDia: document.getElementById("btnDiminuirDia"),
   btnAumentarDia: document.getElementById("btnAumentarDia"),
   btnSalvar: document.getElementById("btnSalvar"),
+  installBtn: document.querySelector(".install-btn"),
 };
 
 // =========================
-// TEMA
+// UI
 // =========================
+function mostrarAuth() {
+  el.auth.style.display = "flex";
+  el.app.style.display = "none";
+}
+
+function mostrarApp() {
+  el.auth.style.display = "none";
+  el.app.style.display = "flex";
+}
+
+function atualizarTextoBotaoSalvar() {
+  if (!el.btnSalvar) return;
+
+  if (editandoId) {
+    el.btnSalvar.innerHTML = '<i class="bi bi-pencil-square"></i> <span>Atualizar cliente</span>';
+    return;
+  }
+
+  el.btnSalvar.innerHTML = '<i class="bi bi-save"></i> <span>Salvar cliente</span>';
+}
+
 function setLoadingGlobal() {
+  if (document.querySelector(".app-loader")) return;
+
   const loader = document.createElement("div");
   loader.className = "app-loader";
-  loader.innerHTML = "Carregando...";
+  loader.textContent = "Carregando...";
   document.body.appendChild(loader);
 }
 
@@ -92,10 +122,38 @@ function removeLoadingGlobal() {
   document.querySelector(".app-loader")?.remove();
 }
 
-window.addEventListener("load", () => {
-  document.body.classList.add("loaded");
-});
+function mostrarToast(mensagem, erro = false) {
+  const toast = document.createElement("div");
+  toast.className = `toast ${erro ? "error" : ""}`.trim();
+  toast.textContent = mensagem;
 
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    setTimeout(() => toast.remove(), 200);
+  }, 2200);
+}
+
+function setLoading(ativo) {
+  if (!el.btnSalvar) return;
+
+  if (ativo) {
+    el.btnSalvar.classList.add("loading");
+    el.btnSalvar.disabled = true;
+    el.btnSalvar.dataset.originalText = el.btnSalvar.innerHTML;
+    el.btnSalvar.innerHTML = "Salvando...";
+    return;
+  }
+
+  el.btnSalvar.classList.remove("loading");
+  el.btnSalvar.disabled = false;
+  atualizarTextoBotaoSalvar();
+}
+
+// =========================
+// TEMA
+// =========================
 function toggleTema() {
   document.body.classList.toggle("light");
   const tema = document.body.classList.contains("light") ? "light" : "dark";
@@ -110,49 +168,14 @@ function carregarTema() {
 }
 
 // =========================
-// TOAST
-// =========================
-function mostrarToast(mensagem, erro = false) {
-  const toast = document.createElement("div");
-  toast.className = `toast ${erro ? "error" : ""}`.trim();
-  toast.textContent = mensagem;
-
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = "0";
-    setTimeout(() => toast.remove(), 200);
-  }, 2200);
-}
-
-// =========================
-// LOADING
-// =========================
-function setLoading(ativo) {
-  if (!el.btnSalvar) return;
-
-  if (ativo) {
-    el.btnSalvar.classList.add("loading");
-    el.btnSalvar.disabled = true;
-    el.btnSalvar.dataset.originalText = el.btnSalvar.innerHTML;
-    el.btnSalvar.innerHTML = "Salvando...";
-    return;
-  }
-
-  el.btnSalvar.classList.remove("loading");
-  el.btnSalvar.disabled = false;
-  el.btnSalvar.innerHTML =
-    el.btnSalvar.dataset.originalText ||
-    '<i class="bi bi-save"></i> Salvar cliente';
-}
-
-// =========================
 // UTIL
 // =========================
 function limparCampos() {
   el.nome.value = "";
   el.contato.value = "";
   el.dia.value = "1";
+  editandoId = null;
+  atualizarTextoBotaoSalvar();
 }
 
 function aumentarDia() {
@@ -169,14 +192,27 @@ function diminuirDia() {
   }
 }
 
+function escaparHTML(texto = "") {
+  return String(texto)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function obterMesAtual() {
+  const agora = new Date();
+  return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function obterDataHojeISO() {
+  return new Date().toISOString().split("T")[0];
+}
+
 function obterStatus(cliente) {
   const hoje = new Date().getDate();
-
-  const agora = new Date();
-  const mesAtual = `${agora.getFullYear()}-${String(
-    agora.getMonth() + 1,
-  ).padStart(2, "0")}`;
-
+  const mesAtual = obterMesAtual();
   const enviadoNesteMes = cliente.ultimaCobrancaEm === mesAtual;
 
   if (enviadoNesteMes) {
@@ -202,10 +238,13 @@ async function cadastrar() {
   const senha = el.senha.value.trim();
 
   if (!email || !senha) {
-    return mostrarToast("Preencha email e senha", true);
+    mostrarToast("Preencha email e senha", true);
+    return;
   }
 
   try {
+    setLoadingGlobal();
+
     const cred = await createUserWithEmailAndPassword(auth, email, senha);
 
     await setDoc(doc(db, "users", cred.user.uid), {
@@ -218,6 +257,8 @@ async function cadastrar() {
   } catch (erro) {
     console.error(erro);
     mostrarToast(erro.message || "Erro ao criar conta", true);
+  } finally {
+    removeLoadingGlobal();
   }
 }
 
@@ -226,59 +267,57 @@ async function login() {
   const senha = el.senha.value.trim();
 
   if (!email || !senha) {
-    return mostrarToast("Preencha email e senha", true);
+    mostrarToast("Preencha email e senha", true);
+    return;
   }
 
   try {
+    setLoadingGlobal();
     await signInWithEmailAndPassword(auth, email, senha);
     mostrarToast("Login realizado");
   } catch (erro) {
     console.error(erro);
     mostrarToast(erro.message || "Erro ao entrar", true);
+  } finally {
+    removeLoadingGlobal();
   }
 }
 
 async function logout() {
   try {
+    setLoadingGlobal();
     await signOut(auth);
     mostrarToast("Sessão encerrada");
   } catch (erro) {
     console.error(erro);
     mostrarToast("Erro ao sair", true);
+  } finally {
+    removeLoadingGlobal();
   }
 }
 
 // =========================
 // NOTIFICAÇÕES
 // =========================
-let swRegistration = null;
-
-async function registrarSW() {
+async function registrarSWMensageria() {
   if (!("serviceWorker" in navigator)) return null;
 
   try {
     if (!swRegistration) {
-      swRegistration = await navigator.serviceWorker.register(
-        "./firebase-messaging-sw.js",
-      );
+      swRegistration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
     }
     return swRegistration;
   } catch (erro) {
-    console.error("Erro ao registrar SW:", erro);
+    console.error("Erro ao registrar SW de mensageria:", erro);
     return null;
   }
 }
 
 async function ativarNotificacao() {
-  if (!("Notification" in window)) {
-    console.warn("Notificações não suportadas");
-    return;
-  }
-
+  if (!("Notification" in window)) return;
   if (!auth.currentUser) return;
 
   try {
-    // 👇 evita pedir permissão toda hora
     let permission = Notification.permission;
 
     if (permission !== "granted") {
@@ -286,11 +325,10 @@ async function ativarNotificacao() {
     }
 
     if (permission !== "granted") {
-      console.warn("Permissão negada");
       return;
     }
 
-    const registration = await registrarSW();
+    const registration = await registrarSWMensageria();
     if (!registration) return;
 
     const token = await getToken(messaging, {
@@ -299,10 +337,7 @@ async function ativarNotificacao() {
       serviceWorkerRegistration: registration,
     });
 
-    if (!token) {
-      console.warn("Token não gerado");
-      return;
-    }
+    if (!token) return;
 
     await setDoc(
       doc(db, "users", auth.currentUser.uid),
@@ -310,7 +345,6 @@ async function ativarNotificacao() {
       { merge: true },
     );
 
-    console.log("🔥 Token salvo:", token);
     mostrarToast("Notificações ativadas");
   } catch (erro) {
     console.error("Erro ao ativar notificações:", erro);
@@ -318,15 +352,10 @@ async function ativarNotificacao() {
   }
 }
 
-// =========================
-// RECEBER NOTIFICAÇÃO
-// =========================
 function escutarNotificacao() {
   onMessage(messaging, (payload) => {
     const titulo = payload.notification?.title || "Notificação";
     const corpo = payload.notification?.body || "";
-
-    console.log("📩 Notificação recebida:", payload);
 
     if ("Notification" in window && Notification.permission === "granted") {
       new Notification(titulo, {
@@ -336,73 +365,68 @@ function escutarNotificacao() {
       return;
     }
 
-    // fallback
     mostrarToast(`${titulo}${corpo ? ` - ${corpo}` : ""}`);
   });
 }
 
 // =========================
-// NOTIFICAÇÃO INTELIGENTE
+// COBRANÇAS
 // =========================
-
 function verificarCobrancas() {
   const hoje = new Date();
   const diaHoje = hoje.getDate();
-  const dataHoje = hoje.toISOString().split("T")[0];
-
-  const mesAtual = `${hoje.getFullYear()}-${String(
-    hoje.getMonth() + 1,
-  ).padStart(2, "0")}`;
+  const dataHoje = obterDataHojeISO();
+  const mesAtual = obterMesAtual();
 
   clientes.forEach((cliente) => {
     const jaNotificadoHoje = cliente.ultimaNotificacaoEm === dataHoje;
-
     const jaCobrado = cliente.ultimaCobrancaEm === mesAtual;
 
     if (jaNotificadoHoje || jaCobrado) return;
 
-    const diasRestantes = cliente.diaVencimento - diaHoje;
+    const diasRestantes = Number(cliente.diaVencimento) - diaHoje;
 
     if (diasRestantes === 0) {
       notificar(cliente, "hoje");
-    } else if (diasRestantes === 1) {
+      return;
+    }
+
+    if (diasRestantes === 1) {
       notificar(cliente, "amanha");
-    } else if (diasRestantes < 0) {
+      return;
+    }
+
+    if (diasRestantes < 0) {
       notificar(cliente, "atrasado");
     }
   });
 }
 
 function notificar(cliente, tipo) {
+  if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
 
   let mensagem = "";
 
-  if (tipo === "hoje") {
-    mensagem = `${cliente.nome} vence hoje`;
-  }
+  if (tipo === "hoje") mensagem = `${cliente.nome} vence hoje`;
+  if (tipo === "amanha") mensagem = `${cliente.nome} vence amanhã`;
+  if (tipo === "atrasado") mensagem = `${cliente.nome} está atrasado`;
 
-  if (tipo === "amanha") {
-    mensagem = `${cliente.nome} vence amanhã`;
-  }
-
-  if (tipo === "atrasado") {
-    mensagem = `${cliente.nome} está atrasado`;
-  }
+  if (!mensagem) return;
 
   new Notification("💰 Cobrança", {
     body: mensagem,
     icon: "./icons/icon-192.png",
   });
 
-  salvarNotificacao(cliente.id);
+  salvarNotificacao(cliente.id).catch((erro) => {
+    console.error("Erro ao salvar notificação:", erro);
+  });
 }
 
 async function salvarNotificacao(id) {
-  const hoje = new Date().toISOString().split("T")[0];
-
   await updateDoc(doc(db, "clientes", id), {
-    ultimaNotificacaoEm: hoje,
+    ultimaNotificacaoEm: obterDataHojeISO(),
   });
 }
 
@@ -448,7 +472,8 @@ async function salvarCliente() {
   const dia = Number(el.dia.value);
 
   if (!nome || !contato || !dia) {
-    return mostrarToast("Preencha todos os campos", true);
+    mostrarToast("Preencha todos os campos", true);
+    return;
   }
 
   setLoading(true);
@@ -471,9 +496,14 @@ async function salvarCliente() {
 }
 
 function escutarClientes(uid) {
+  if (unsubscribeClientes) {
+    unsubscribeClientes();
+    unsubscribeClientes = null;
+  }
+
   const q = query(collection(db, "clientes"), where("uid", "==", uid));
 
-  onSnapshot(q, (snap) => {
+  unsubscribeClientes = onSnapshot(q, (snap) => {
     clientes = snap.docs.map((docSnap) => ({
       id: docSnap.id,
       ...docSnap.data(),
@@ -485,7 +515,8 @@ function escutarClientes(uid) {
 }
 
 async function remover(id) {
-  if (!confirm("Excluir este cliente?")) return;
+  const confirmar = window.confirm("Excluir este cliente?");
+  if (!confirmar) return;
 
   try {
     await deleteDoc(doc(db, "clientes", id));
@@ -497,18 +528,13 @@ async function remover(id) {
 }
 
 async function marcarEnviado(id) {
-  const nomePessoa = prompt("Quem enviou?");
-  if (!nomePessoa) return;
-
-  const agora = new Date();
-  const referenciaMes = `${agora.getFullYear()}-${String(
-    agora.getMonth() + 1,
-  ).padStart(2, "0")}`;
+  const nomePessoa = window.prompt("Quem enviou?");
+  if (!nomePessoa || !nomePessoa.trim()) return;
 
   try {
     await updateDoc(doc(db, "clientes", id), {
       enviadoPor: nomePessoa.trim(),
-      ultimaCobrancaEm: referenciaMes,
+      ultimaCobrancaEm: obterMesAtual(),
     });
 
     mostrarToast("Cobrança registrada");
@@ -522,15 +548,27 @@ function editar(id) {
   const cliente = clientes.find((item) => item.id === id);
   if (!cliente) return;
 
-  el.nome.value = cliente.nome;
-  el.contato.value = cliente.contato;
-  el.dia.value = String(cliente.diaVencimento);
-  editandoId = id;
+  el.nome.value = cliente.nome || "";
+  el.contato.value = cliente.contato || "";
+  el.dia.value = String(cliente.diaVencimento || 1);
 
+  editandoId = id;
+  atualizarTextoBotaoSalvar();
   el.nome.focus();
+
   mostrarToast("Modo edição ativado");
-  el.btnSalvar.innerHTML = "Atualizar cliente";
-  el.btnSalvar.innerHTML = '<i class="bi bi-save"></i> Salvar cliente';
+}
+
+function resetarEstadoApp() {
+  clientes = [];
+  editandoId = null;
+  limparCampos();
+  renderizarLista();
+
+  if (unsubscribeClientes) {
+    unsubscribeClientes();
+    unsubscribeClientes = null;
+  }
 }
 
 // =========================
@@ -552,16 +590,16 @@ function criarCardCliente(cliente) {
   li.className = status.cor;
 
   li.innerHTML = `
-    <strong>${cliente.nome}</strong><br>
-    📞 ${cliente.contato}<br>
-    📅 Dia ${cliente.diaVencimento}<br>
+    <strong>${escaparHTML(cliente.nome)}</strong><br>
+    📞 ${escaparHTML(cliente.contato)}<br>
+    📅 Dia ${Number(cliente.diaVencimento)}<br>
 
     <span class="status">${status.texto}</span>
 
     <div class="actions">
-      <button class="btn-check" data-id="${cliente.id}" type="button">✔</button>
-      <button class="btn-edit" data-id="${cliente.id}" type="button">✏</button>
-      <button class="btn-delete" data-id="${cliente.id}" type="button">🗑</button>
+      <button class="btn-check" data-id="${cliente.id}" type="button" aria-label="Marcar como enviado">✔</button>
+      <button class="btn-edit" data-id="${cliente.id}" type="button" aria-label="Editar cliente">✏</button>
+      <button class="btn-delete" data-id="${cliente.id}" type="button" aria-label="Excluir cliente">🗑</button>
     </div>
   `;
 
@@ -569,10 +607,13 @@ function criarCardCliente(cliente) {
 }
 
 function renderizarLista() {
+  if (!el.lista) return;
+
   el.lista.innerHTML = "";
 
   if (clientes.length === 0) {
-    return renderizarEstadoVazio();
+    renderizarEstadoVazio();
+    return;
   }
 
   const fragment = document.createDocumentFragment();
@@ -595,15 +636,17 @@ function handleListaClick(event) {
   if (!id) return;
 
   if (btn.classList.contains("btn-delete")) {
-    return remover(id);
+    remover(id);
+    return;
   }
 
   if (btn.classList.contains("btn-edit")) {
-    return editar(id);
+    editar(id);
+    return;
   }
 
   if (btn.classList.contains("btn-check")) {
-    return marcarEnviado(id);
+    marcarEnviado(id);
   }
 }
 
@@ -624,6 +667,50 @@ function bindEvents() {
   el.btnAumentarDia?.addEventListener("click", aumentarDia);
   el.btnDiminuirDia?.addEventListener("click", diminuirDia);
   el.lista?.addEventListener("click", handleListaClick);
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredPrompt = event;
+
+    if (el.installBtn) {
+      el.installBtn.style.display = "block";
+    }
+
+    console.log("Pode instalar o app!");
+  });
+
+  window.addEventListener("load", () => {
+    document.body.classList.add("loaded");
+  });
+}
+
+// =========================
+// PWA
+// =========================
+async function instalarApp() {
+  if (!deferredPrompt) return;
+
+  deferredPrompt.prompt();
+
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log("Resultado da instalação:", outcome);
+
+  deferredPrompt = null;
+
+  if (el.installBtn) {
+    el.installBtn.style.display = "none";
+  }
+}
+
+window.instalarApp = instalarApp;
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .then(() => console.log("PWA pronto"))
+      .catch((erro) => console.error("Erro no service worker:", erro));
+  });
 }
 
 // =========================
@@ -633,62 +720,38 @@ function init() {
   carregarTema();
   bindEvents();
   escutarNotificacao();
+  mostrarAuth();
 
-  verificarCobrancas(); // 🔥 imediato
-  setInterval(verificarCobrancas, 60000); // 🔥 automático
+  verificarCobrancas();
+
+  if (intervaloCobrancas) {
+    clearInterval(intervaloCobrancas);
+  }
+
+  intervaloCobrancas = setInterval(verificarCobrancas, 60000);
 }
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    el.auth.style.display = "none";
-    el.app.style.display = "block";
-
+    mostrarApp();
     escutarClientes(user.uid);
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
 
-    if (!userSnap.exists() || !userSnap.data().fcmToken) {
-      await ativarNotificacao();
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists() || !userSnap.data().fcmToken) {
+        await ativarNotificacao();
+      }
+    } catch (erro) {
+      console.error("Erro ao verificar token do usuário:", erro);
     }
+
     return;
   }
 
-  el.auth.hidden = false;
-  el.app.hidden = true;
-
-  el.auth.style.display = "flex";
-  el.app.style.display = "none";
+  resetarEstadoApp();
+  mostrarAuth();
 });
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("./service-worker.js")
-      .then(() => console.log("PWA pronto"))
-      .catch(console.error);
-  });
-}
-let deferredPrompt;
-
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-
-  document.querySelector(".install-btn").style.display = "block";
-});
-
-  console.log("Pode instalar o app!");
-});
-async function instalarApp() {
-  if (!deferredPrompt) return;
-
-  deferredPrompt.prompt();
-
-  const { outcome } = await deferredPrompt.userChoice;
-  console.log("Resultado:", outcome);
-
-  deferredPrompt = null;
-}
-
-window.instalarApp = instalarApp;
 init();
