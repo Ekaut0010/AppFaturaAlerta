@@ -19,18 +19,13 @@ html {
 }
 
 body {
-    background: var(--bg);
-    color: var(--text);
-    font-weight: 500;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.4s ease;
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 500;
+  opacity: 1;
+  transform: none;
 }
 
-body.loaded {
-    opacity: 1;
-    transform: translateY(0);
-}
 
 /* =========================
    DESIGN TOKENS
