@@ -314,6 +314,9 @@ button {
 button:active {
     transform: scale(0.95);
 }
+.install-btn {
+  display: none;
+}
 
 .btn,
 .actions button,
