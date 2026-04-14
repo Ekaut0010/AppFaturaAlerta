@@ -674,6 +674,9 @@ window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredPrompt = e;
 
+  document.querySelector(".install-btn").style.display = "block";
+});
+
   console.log("Pode instalar o app!");
 });
 async function instalarApp() {
