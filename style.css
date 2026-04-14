@@ -207,6 +207,12 @@ body {
 }
 
 .input-group {
+    display: flex;
+    align-items: center;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0 12px;
     transition: border var(--transition),
         box-shadow var(--transition),
         transform var(--transition-fast);
@@ -214,6 +220,7 @@ body {
 
 .input-group:focus-within {
     transform: scale(1.01);
+    border-color: var(--primary);
 }
 
 .input-group i {
@@ -510,6 +517,20 @@ li strong {
 /* =========================
    AUTH
 ========================= */
+#auth {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-card h2,
+.auth-card p,
+.auth-card input,
+.auth-card button {
+    opacity: 1;
+    visibility: visible;
+}
+
 .auth-container {
     display: flex;
     justify-content: center;
@@ -519,12 +540,11 @@ li strong {
 .auth-card {
     width: 100%;
     max-width: 420px;
-    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 24px;
     padding: 32px;
     box-shadow: var(--shadow-lg);
-    backdrop-filter: blur(12px);
     animation: fadeIn 0.35s ease;
 }
 
