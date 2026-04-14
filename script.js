@@ -13,6 +13,7 @@ import {
   query,
   where,
   setDoc,
+  getDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getAuth,
@@ -156,7 +157,14 @@ function diminuirDia() {
 function obterStatus(cliente) {
   const hoje = new Date().getDate();
 
-  if (cliente.mensagemEnviada) {
+  const agora = new Date();
+  const mesAtual = `${agora.getFullYear()}-${String(
+    agora.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
+  const enviadoNesteMes = cliente.ultimaCobrancaEm === mesAtual;
+
+  if (enviadoNesteMes) {
     return { texto: "Resolvido", cor: "green" };
   }
 
@@ -228,41 +236,158 @@ async function logout() {
 // =========================
 // NOTIFICAÇÕES
 // =========================
+let swRegistration = null;
+
+async function registrarSW() {
+  if (!("serviceWorker" in navigator)) return null;
+
+  try {
+    if (!swRegistration) {
+      swRegistration = await navigator.serviceWorker.register(
+        "./firebase-messaging-sw.js",
+      );
+    }
+    return swRegistration;
+  } catch (erro) {
+    console.error("Erro ao registrar SW:", erro);
+    return null;
+  }
+}
+
 async function ativarNotificacao() {
-  if (!("Notification" in window)) return;
+  if (!("Notification" in window)) {
+    console.warn("Notificações não suportadas");
+    return;
+  }
+
   if (!auth.currentUser) return;
 
   try {
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") return;
+    // 👇 evita pedir permissão toda hora
+    let permission = Notification.permission;
+
+    if (permission !== "granted") {
+      permission = await Notification.requestPermission();
+    }
+
+    if (permission !== "granted") {
+      console.warn("Permissão negada");
+      return;
+    }
+
+    const registration = await registrarSW();
+    if (!registration) return;
 
     const token = await getToken(messaging, {
-      vapidKey: "SUA_VAPID_KEY",
+      vapidKey:
+        "BLp-Ne9os-V__uVv3tafA41DF4eLZiVScun5FSc3H2GbyOlcjIo5yglOtpvzzO0V9DnRXDoT8xIiv9FChxUEEYM",
+      serviceWorkerRegistration: registration,
     });
 
-    if (!token) return;
+    if (!token) {
+      console.warn("Token não gerado");
+      return;
+    }
 
     await setDoc(
       doc(db, "users", auth.currentUser.uid),
       { fcmToken: token },
       { merge: true },
     );
+
+    console.log("🔥 Token salvo:", token);
+    mostrarToast("Notificações ativadas");
   } catch (erro) {
     console.error("Erro ao ativar notificações:", erro);
+    mostrarToast("Erro ao ativar notificações", true);
   }
 }
 
+// =========================
+// RECEBER NOTIFICAÇÃO
+// =========================
 function escutarNotificacao() {
   onMessage(messaging, (payload) => {
     const titulo = payload.notification?.title || "Notificação";
     const corpo = payload.notification?.body || "";
 
+    console.log("📩 Notificação recebida:", payload);
+
     if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(titulo, { body: corpo });
+      new Notification(titulo, {
+        body: corpo,
+        icon: "./icons/icon-192.png",
+      });
       return;
     }
 
+    // fallback
     mostrarToast(`${titulo}${corpo ? ` - ${corpo}` : ""}`);
+  });
+}
+
+// =========================
+// NOTIFICAÇÃO INTELIGENTE
+// =========================
+
+function verificarCobrancas() {
+  const hoje = new Date();
+  const diaHoje = hoje.getDate();
+  const dataHoje = hoje.toISOString().split("T")[0];
+
+  const mesAtual = `${hoje.getFullYear()}-${String(
+    hoje.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
+  clientes.forEach((cliente) => {
+    const jaNotificadoHoje = cliente.ultimaNotificacaoEm === dataHoje;
+
+    const jaCobrado = cliente.ultimaCobrancaEm === mesAtual;
+
+    if (jaNotificadoHoje || jaCobrado) return;
+
+    const diasRestantes = cliente.diaVencimento - diaHoje;
+
+    if (diasRestantes === 0) {
+      notificar(cliente, "hoje");
+    } else if (diasRestantes === 1) {
+      notificar(cliente, "amanha");
+    } else if (diasRestantes < 0) {
+      notificar(cliente, "atrasado");
+    }
+  });
+}
+
+function notificar(cliente, tipo) {
+  if (Notification.permission !== "granted") return;
+
+  let mensagem = "";
+
+  if (tipo === "hoje") {
+    mensagem = `${cliente.nome} vence hoje`;
+  }
+
+  if (tipo === "amanha") {
+    mensagem = `${cliente.nome} vence amanhã`;
+  }
+
+  if (tipo === "atrasado") {
+    mensagem = `${cliente.nome} está atrasado`;
+  }
+
+  new Notification("💰 Cobrança", {
+    body: mensagem,
+    icon: "./icons/icon-192.png",
+  });
+
+  salvarNotificacao(cliente.id);
+}
+
+async function salvarNotificacao(id) {
+  const hoje = new Date().toISOString().split("T")[0];
+
+  await updateDoc(doc(db, "clientes", id), {
+    ultimaNotificacaoEm: hoje,
   });
 }
 
@@ -279,8 +404,9 @@ async function criarCliente(nome, contato, dia) {
     nome: nome.trim(),
     contato: contato.trim(),
     diaVencimento: Number(dia),
-    mensagemEnviada: false,
     enviadoPor: null,
+    ultimaCobrancaEm: null,
+    ultimaNotificacaoEm: null,
   });
 
   mostrarToast("Cliente salvo com sucesso");
@@ -339,6 +465,7 @@ function escutarClientes(uid) {
     }));
 
     renderizarLista();
+    verificarCobrancas();
   });
 }
 
@@ -358,16 +485,21 @@ async function marcarEnviado(id) {
   const nomePessoa = prompt("Quem enviou?");
   if (!nomePessoa) return;
 
+  const agora = new Date();
+  const referenciaMes = `${agora.getFullYear()}-${String(
+    agora.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
   try {
     await updateDoc(doc(db, "clientes", id), {
-      mensagemEnviada: true,
       enviadoPor: nomePessoa.trim(),
+      ultimaCobrancaEm: referenciaMes,
     });
 
-    mostrarToast("Marcado como resolvido");
+    mostrarToast("Cobrança registrada");
   } catch (erro) {
     console.error(erro);
-    mostrarToast("Erro ao atualizar cliente", true);
+    mostrarToast("Erro ao atualizar", true);
   }
 }
 
@@ -382,6 +514,8 @@ function editar(id) {
 
   el.nome.focus();
   mostrarToast("Modo edição ativado");
+  el.btnSalvar.innerHTML = "Atualizar cliente";
+  el.btnSalvar.innerHTML = '<i class="bi bi-save"></i> Salvar cliente';
 }
 
 // =========================
@@ -484,18 +618,23 @@ function init() {
   carregarTema();
   bindEvents();
   escutarNotificacao();
+
+  verificarCobrancas(); // 🔥 imediato
+  setInterval(verificarCobrancas, 60000); // 🔥 automático
 }
 
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    el.auth.hidden = true;
-    el.app.hidden = false;
-
     el.auth.style.display = "none";
     el.app.style.display = "block";
 
     escutarClientes(user.uid);
-    await ativarNotificacao();
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists() || !userSnap.data().fcmToken) {
+      await ativarNotificacao();
+    }
     return;
   }
 
@@ -507,13 +646,31 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", async () => {
-    try {
-      await navigator.serviceWorker.register("./service-worker.js");
-      console.log("Service Worker registrado com sucesso.");
-    } catch (erro) {
-      console.error("Erro ao registrar Service Worker:", erro);
-    }
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .then(() => console.log("PWA pronto"))
+      .catch(console.error);
   });
 }
+let deferredPrompt;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  console.log("Pode instalar o app!");
+});
+async function instalarApp() {
+  if (!deferredPrompt) return;
+
+  deferredPrompt.prompt();
+
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log("Resultado:", outcome);
+
+  deferredPrompt = null;
+}
+
+window.instalarApp = instalarApp;
 init();
