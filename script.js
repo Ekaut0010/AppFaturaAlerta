@@ -279,8 +279,10 @@ async function login() {
     mostrarToast("Login realizado");
 
     // 🔔 garante notificação ativa
-    if (Notification.permission !== "granted") {
-      await Notification.requestPermission();
+    if ("Notification" in window) {
+      if (Notification.permission === "default") {
+        await Notification.requestPermission();
+      }
     }
   } catch (erro) {
     console.error(erro);
@@ -401,8 +403,8 @@ function notificar(cliente, tipo) {
   // 🔔 NOTIFICAÇÃO
   new Notification("Cobrança", {
     body: mensagem,
-    icon: "./icons/icon-22.png",
-    badge: "./icons/icon-22.png",
+    icon: "./icons/icon-192.png",
+    badge: "./icons/icon-192.png",
     vibrate: [200, 100, 200],
     tag: "cobranca",
     renotify: true,
@@ -714,6 +716,36 @@ function init() {
   }
 
   intervaloCobrancas = setInterval(verificarCobrancas, 60000);
+}
+
+function verificarCobrancas() {
+  const hoje = new Date();
+  const diaHoje = hoje.getDate();
+  const dataHoje = obterDataHojeISO();
+  const mesAtual = obterMesAtual();
+
+  clientes.forEach((cliente) => {
+    const jaNotificadoHoje = cliente.ultimaNotificacaoEm === dataHoje;
+    const jaCobrado = cliente.ultimaCobrancaEm === mesAtual;
+
+    if (jaNotificadoHoje || jaCobrado) return;
+
+    const diasRestantes = Number(cliente.diaVencimento) - diaHoje;
+
+    if (diasRestantes === 0) {
+      notificar(cliente, "hoje");
+      return;
+    }
+
+    if (diasRestantes === 1) {
+      notificar(cliente, "amanha");
+      return;
+    }
+
+    if (diasRestantes < 0) {
+      notificar(cliente, "atrasado");
+    }
+  });
 }
 
 onAuthStateChanged(auth, async (user) => {
