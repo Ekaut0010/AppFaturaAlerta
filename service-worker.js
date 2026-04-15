@@ -58,7 +58,15 @@ self.addEventListener("fetch", (event) => {
   // 🔥 HTML → network first (sempre tenta atualizar)
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match("/index.html")),
+      fetch(event.request)
+        .then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put("/index.html", clone);
+          });
+          return res;
+        })
+        .catch(() => caches.match("/index.html")),
     );
     return;
   }
@@ -75,5 +83,47 @@ self.addEventListener("fetch", (event) => {
         });
       });
     }),
+  );
+});
+// =========================
+// PUSH (NOTIFICAÇÃO)
+// =========================
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  const data = event.data.json();
+
+  const titulo = data.title || "💰 Cobrança";
+  const corpo = data.body || "Você tem uma cobrança pendente";
+
+  const options = {
+    body: corpo,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    vibrate: [200, 100, 200],
+    tag: "cobranca",
+    renotify: true,
+    requireInteraction: true,
+  };
+
+  event.waitUntil(self.registration.showNotification(titulo, options));
+});
+// =========================
+// CLICK NOTIFICAÇÃO
+// =========================
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url === "/" && "focus" in client) {
+            return client.focus();
+          }
+        }
+        return clients.openWindow("/");
+      }),
   );
 });

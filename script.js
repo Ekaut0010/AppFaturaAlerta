@@ -102,11 +102,13 @@ function atualizarTextoBotaoSalvar() {
   if (!el.btnSalvar) return;
 
   if (editandoId) {
-    el.btnSalvar.innerHTML = '<i class="bi bi-pencil-square"></i> <span>Atualizar cliente</span>';
+    el.btnSalvar.innerHTML =
+      '<i class="bi bi-pencil-square"></i> <span>Atualizar cliente</span>';
     return;
   }
 
-  el.btnSalvar.innerHTML = '<i class="bi bi-save"></i> <span>Salvar cliente</span>';
+  el.btnSalvar.innerHTML =
+    '<i class="bi bi-save"></i> <span>Salvar cliente</span>';
 }
 
 function setLoadingGlobal() {
@@ -238,8 +240,7 @@ async function cadastrar() {
   const senha = el.senha.value.trim();
 
   if (!email || !senha) {
-    mostrarToast("Preencha email e senha", true);
-    return;
+    return mostrarToast("Preencha email e senha", true);
   }
 
   try {
@@ -256,7 +257,7 @@ async function cadastrar() {
     mostrarToast("Conta criada com sucesso");
   } catch (erro) {
     console.error(erro);
-    mostrarToast(erro.message || "Erro ao criar conta", true);
+    mostrarToast("Erro ao criar conta", true);
   } finally {
     removeLoadingGlobal();
   }
@@ -267,17 +268,23 @@ async function login() {
   const senha = el.senha.value.trim();
 
   if (!email || !senha) {
-    mostrarToast("Preencha email e senha", true);
-    return;
+    return mostrarToast("Preencha email e senha", true);
   }
 
   try {
     setLoadingGlobal();
+
     await signInWithEmailAndPassword(auth, email, senha);
+
     mostrarToast("Login realizado");
+
+    // 🔔 garante notificação ativa
+    if (Notification.permission !== "granted") {
+      await Notification.requestPermission();
+    }
   } catch (erro) {
     console.error(erro);
-    mostrarToast(erro.message || "Erro ao entrar", true);
+    mostrarToast("Email ou senha inválidos", true);
   } finally {
     removeLoadingGlobal();
   }
@@ -286,8 +293,14 @@ async function login() {
 async function logout() {
   try {
     setLoadingGlobal();
+
     await signOut(auth);
+
     mostrarToast("Sessão encerrada");
+
+    // 🧹 limpa interface
+    el.lista.innerHTML = "";
+    clientes = [];
   } catch (erro) {
     console.error(erro);
     mostrarToast("Erro ao sair", true);
@@ -295,7 +308,6 @@ async function logout() {
     removeLoadingGlobal();
   }
 }
-
 // =========================
 // NOTIFICAÇÕES
 // =========================
@@ -304,7 +316,9 @@ async function registrarSWMensageria() {
 
   try {
     if (!swRegistration) {
-      swRegistration = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+      swRegistration = await navigator.serviceWorker.register(
+        "./firebase-messaging-sw.js",
+      );
     }
     return swRegistration;
   } catch (erro) {
@@ -372,62 +386,33 @@ function escutarNotificacao() {
 // =========================
 // COBRANÇAS
 // =========================
-function verificarCobrancas() {
-  const hoje = new Date();
-  const diaHoje = hoje.getDate();
-  const dataHoje = obterDataHojeISO();
-  const mesAtual = obterMesAtual();
-
-  clientes.forEach((cliente) => {
-    const jaNotificadoHoje = cliente.ultimaNotificacaoEm === dataHoje;
-    const jaCobrado = cliente.ultimaCobrancaEm === mesAtual;
-
-    if (jaNotificadoHoje || jaCobrado) return;
-
-    const diasRestantes = Number(cliente.diaVencimento) - diaHoje;
-
-    if (diasRestantes === 0) {
-      notificar(cliente, "hoje");
-      return;
-    }
-
-    if (diasRestantes === 1) {
-      notificar(cliente, "amanha");
-      return;
-    }
-
-    if (diasRestantes < 0) {
-      notificar(cliente, "atrasado");
-    }
-  });
-}
-
 function notificar(cliente, tipo) {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
 
   let mensagem = "";
 
-  if (tipo === "hoje") mensagem = `${cliente.nome} vence hoje`;
-  if (tipo === "amanha") mensagem = `${cliente.nome} vence amanhã`;
-  if (tipo === "atrasado") mensagem = `${cliente.nome} está atrasado`;
+  if (tipo === "hoje") mensagem = `💰 Hoje vence: ${cliente.nome}`;
+  if (tipo === "amanha") mensagem = `⏰ Amanhã vence: ${cliente.nome}`;
+  if (tipo === "atrasado") mensagem = `⚠️ ${cliente.nome} está atrasado`;
 
   if (!mensagem) return;
 
-  new Notification("💰 Cobrança", {
+  // 🔔 NOTIFICAÇÃO
+  new Notification("Cobrança", {
     body: mensagem,
-    icon: "./icons/icon-192.png",
+    icon: "./icons/icon-22.png",
+    badge: "./icons/icon-22.png",
+    vibrate: [200, 100, 200],
+    tag: "cobranca",
+    renotify: true,
+    requireInteraction: true,
   });
 
-  salvarNotificacao(cliente.id).catch((erro) => {
-    console.error("Erro ao salvar notificação:", erro);
-  });
-}
+  // 📳 vibração extra (Android)
+  navigator.vibrate?.([200, 100, 200]);
 
-async function salvarNotificacao(id) {
-  await updateDoc(doc(db, "clientes", id), {
-    ultimaNotificacaoEm: obterDataHojeISO(),
-  });
+  salvarNotificacao(cliente.id).catch(console.error);
 }
 
 // =========================
