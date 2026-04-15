@@ -1,7 +1,9 @@
 // =========================
-// FIREBASE
+// FIREBASE — IMPORTS
 // =========================
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+
 import {
   getFirestore,
   collection,
@@ -31,8 +33,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
 
 // =========================
-// CONFIG
+// FIREBASE — CONFIG
 // =========================
+
 const firebaseConfig = {
   apiKey: "AIzaSyBLeiDpZp2AZ-m_yM1C63OqFx0p7HGZLDc",
   authDomain: "faturaapp-49a98.firebaseapp.com",
@@ -48,86 +51,132 @@ const auth = getAuth(firebaseApp);
 const messaging = getMessaging(firebaseApp);
 
 // =========================
+// CONSTANTES
+// =========================
+
+const THEME_KEY = "theme";
+const VAPID_KEY =
+  "BLp-Ne9os-V__uVv3tafA41DF4eLZiVScun5FSc3H2GbyOlcjIo5yglOtpvzzO0V9DnRXDoT8xIiv9FChxUEEYM";
+const CHECK_INTERVAL_MS = 60_000;
+
+// =========================
 // ESTADO
 // =========================
-let clientes = [];
-let editandoId = null;
-let unsubscribeClientes = null;
-let deferredPrompt = null;
-let swRegistration = null;
-let intervaloCobrancas = null;
+
+const state = {
+  clientes: [],
+  editandoId: null,
+
+  unsubscribeClientes: null,
+  deferredPrompt: null,
+  swRegistration: null,
+  intervaloCobrancas: null,
+  jaEscutandoNotificacao: false,
+};
 
 // =========================
 // DOM
 // =========================
+
+/** @param {string} id */
+const $ = (id) => document.getElementById(id);
+
 const el = {
-  auth: document.getElementById("auth"),
-  app: document.getElementById("app"),
-
-  formLogin: document.getElementById("formLogin"),
-  formCliente: document.getElementById("formCliente"),
-
-  email: document.getElementById("email"),
-  senha: document.getElementById("senha"),
-
-  nome: document.getElementById("nome"),
-  contato: document.getElementById("contato"),
-  dia: document.getElementById("dia"),
-
-  lista: document.getElementById("listaClientes"),
-
-  btnCadastrar: document.getElementById("btnCadastrar"),
-  btnLogout: document.getElementById("btnLogout"),
-  btnTema: document.getElementById("btnTema"),
-  btnDiminuirDia: document.getElementById("btnDiminuirDia"),
-  btnAumentarDia: document.getElementById("btnAumentarDia"),
-  btnSalvar: document.getElementById("btnSalvar"),
-  installBtn: document.querySelector(".install-btn"),
+  screens: {
+    auth: $("auth"),
+    app: $("app"),
+  },
+  forms: {
+    login: $("formLogin"),
+    cliente: $("formCliente"),
+  },
+  inputs: {
+    email: $("email"),
+    senha: $("senha"),
+    nome: $("nome"),
+    contato: $("contato"),
+    dia: $("dia"),
+  },
+  lista: $("listaClientes"),
+  buttons: {
+    cadastrar: $("btnCadastrar"),
+    logout: $("btnLogout"),
+    tema: $("btnTema"),
+    diminuirDia: $("btnDiminuirDia"),
+    aumentarDia: $("btnAumentarDia"),
+    salvar: $("btnSalvar"),
+    instalar: document.querySelector(".install-btn"),
+  },
 };
 
 // =========================
-// UI
+// UTILITÁRIOS
 // =========================
-function mostrarAuth() {
-  el.auth.style.display = "flex";
-  el.app.style.display = "none";
+
+/** Escapa HTML para evitar XSS. */
+const escaparHTML = (texto = "") =>
+  String(texto)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+/** Retorna o mês atual no formato YYYY-MM. */
+const obterMesAtual = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+};
+
+/** Retorna a data de hoje no formato YYYY-MM-DD. */
+const obterDataHojeISO = () => new Date().toISOString().split("T")[0];
+
+// =========================
+// STATUS DO CLIENTE
+// =========================
+
+const STATUS_MAP = {
+  resolvido: { texto: "Resolvido", cor: "green" },
+  hoje: { texto: "Hoje", cor: "orange" },
+  atrasado: { texto: "Atrasado", cor: "red" },
+  emDia: { texto: "Em dia", cor: "blue" },
+};
+
+/** Deriva o status visual de um cliente. */
+function obterStatus(cliente) {
+  const hoje = new Date().getDate();
+
+  if (cliente.ultimaCobrancaEm === obterMesAtual()) return STATUS_MAP.resolvido;
+
+  const dia = Number(cliente.diaVencimento);
+  if (dia === hoje) return STATUS_MAP.hoje;
+  if (dia < hoje) return STATUS_MAP.atrasado;
+  return STATUS_MAP.emDia;
 }
 
-function mostrarApp() {
-  el.auth.style.display = "none";
-  el.app.style.display = "flex";
-}
+// =========================
+// UI — TELAS
+// =========================
 
-function atualizarTextoBotaoSalvar() {
-  if (!el.btnSalvar) return;
+const mostrarAuth = () => {
+  el.screens.auth.style.display = "flex";
+  el.screens.app.style.display = "none";
+};
 
-  if (editandoId) {
-    el.btnSalvar.innerHTML =
-      '<i class="bi bi-pencil-square"></i> <span>Atualizar cliente</span>';
-    return;
-  }
+const mostrarApp = () => {
+  el.screens.auth.style.display = "none";
+  el.screens.app.style.display = "flex";
+};
 
-  el.btnSalvar.innerHTML =
-    '<i class="bi bi-save"></i> <span>Salvar cliente</span>';
-}
-
-function setLoadingGlobal() {
-  if (document.querySelector(".app-loader")) return;
-
-  const loader = document.createElement("div");
-  loader.className = "app-loader";
-  loader.textContent = "Carregando...";
-  document.body.appendChild(loader);
-}
-
-function removeLoadingGlobal() {
-  document.querySelector(".app-loader")?.remove();
-}
+// =========================
+// UI — TOAST
+// =========================
 
 function mostrarToast(mensagem, erro = false) {
-  const toast = document.createElement("div");
-  toast.className = `toast ${erro ? "error" : ""}`.trim();
-  toast.textContent = mensagem;
+  const toast = Object.assign(document.createElement("div"), {
+    className: `toast${erro ? " error" : ""}`,
+    textContent: mensagem,
+  });
 
   document.body.appendChild(toast);
 
@@ -137,119 +186,119 @@ function mostrarToast(mensagem, erro = false) {
   }, 2200);
 }
 
-function setLoading(ativo) {
-  if (!el.btnSalvar) return;
+// =========================
+// UI — LOADER GLOBAL
+// =========================
 
+function setLoadingGlobal(ativo = true) {
   if (ativo) {
-    el.btnSalvar.classList.add("loading");
-    el.btnSalvar.disabled = true;
-    el.btnSalvar.dataset.originalText = el.btnSalvar.innerHTML;
-    el.btnSalvar.innerHTML = "Salvando...";
+    if (document.querySelector(".app-loader")) return;
+
+    const loader = Object.assign(document.createElement("div"), {
+      className: "app-loader",
+      textContent: "Carregando...",
+    });
+    document.body.appendChild(loader);
     return;
   }
 
-  el.btnSalvar.classList.remove("loading");
-  el.btnSalvar.disabled = false;
+  document.querySelector(".app-loader")?.remove();
+}
+
+// =========================
+// UI — BOTÃO SALVAR
+// =========================
+
+function atualizarTextoBotaoSalvar() {
+  const btn = el.buttons.salvar;
+  if (!btn) return;
+
+  btn.innerHTML = state.editandoId
+    ? '<i class="bi bi-pencil-square"></i> <span>Atualizar cliente</span>'
+    : '<i class="bi bi-save"></i> <span>Salvar cliente</span>';
+}
+
+function setLoadingBotao(ativo) {
+  const btn = el.buttons.salvar;
+  if (!btn) return;
+
+  if (ativo) {
+    btn.classList.add("loading");
+    btn.disabled = true;
+    btn.innerHTML = "Salvando...";
+    return;
+  }
+
+  btn.classList.remove("loading");
+  btn.disabled = false;
   atualizarTextoBotaoSalvar();
 }
 
 // =========================
 // TEMA
 // =========================
+
+const isLightMode = () => document.body.classList.contains("light");
+const aplicarTema = (tema) =>
+  document.body.classList.toggle("light", tema === "light");
+
 function toggleTema() {
-  document.body.classList.toggle("light");
-  const tema = document.body.classList.contains("light") ? "light" : "dark";
-  localStorage.setItem("tema", tema);
+  const novoTema = isLightMode() ? "dark" : "light";
+  aplicarTema(novoTema);
+  localStorage.setItem(THEME_KEY, novoTema);
 }
 
 function carregarTema() {
-  const temaSalvo = localStorage.getItem("tema");
-  if (temaSalvo === "light") {
-    document.body.classList.add("light");
-  }
+  aplicarTema(localStorage.getItem(THEME_KEY) ?? "dark");
 }
 
 // =========================
-// UTIL
+// FORMULÁRIO — HELPERS
 // =========================
+
 function limparCampos() {
-  el.nome.value = "";
-  el.contato.value = "";
-  el.dia.value = "1";
-  editandoId = null;
+  el.inputs.nome.value = "";
+  el.inputs.contato.value = "";
+  el.inputs.dia.value = "1";
+
+  state.editandoId = null;
   atualizarTextoBotaoSalvar();
 }
 
-function aumentarDia() {
-  const valor = Number(el.dia.value) || 1;
-  if (valor < 31) {
-    el.dia.value = String(valor + 1);
-  }
+function alterarDia(delta) {
+  const atual = Number(el.inputs.dia.value) || 1;
+  const novo = atual + delta;
+
+  if (novo >= 1 && novo <= 31) el.inputs.dia.value = String(novo);
 }
 
-function diminuirDia() {
-  const valor = Number(el.dia.value) || 1;
-  if (valor > 1) {
-    el.dia.value = String(valor - 1);
-  }
-}
+const obterCredenciais = () => ({
+  email: el.inputs.email.value.trim(),
+  senha: el.inputs.senha.value.trim(),
+});
 
-function escaparHTML(texto = "") {
-  return String(texto)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function obterMesAtual() {
-  const agora = new Date();
-  return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function obterDataHojeISO() {
-  return new Date().toISOString().split("T")[0];
-}
-
-function obterStatus(cliente) {
-  const hoje = new Date().getDate();
-  const mesAtual = obterMesAtual();
-  const enviadoNesteMes = cliente.ultimaCobrancaEm === mesAtual;
-
-  if (enviadoNesteMes) {
-    return { texto: "Resolvido", cor: "green" };
-  }
-
-  if (cliente.diaVencimento === hoje) {
-    return { texto: "Hoje", cor: "orange" };
-  }
-
-  if (cliente.diaVencimento < hoje) {
-    return { texto: "Atrasado", cor: "red" };
-  }
-
-  return { texto: "Em dia", cor: "blue" };
-}
+const obterDadosCliente = () => ({
+  nome: el.inputs.nome.value.trim(),
+  contato: el.inputs.contato.value.trim(),
+  dia: Number(el.inputs.dia.value),
+});
 
 // =========================
 // AUTH
 // =========================
-async function cadastrar() {
-  const email = el.email.value.trim();
-  const senha = el.senha.value.trim();
 
-  if (!email || !senha) {
-    return mostrarToast("Preencha email e senha", true);
-  }
+async function cadastrar() {
+  const { email, senha } = obterCredenciais();
+
+  if (!email || !senha) return mostrarToast("Preencha email e senha", true);
 
   try {
-    setLoadingGlobal();
+    setLoadingGlobal(true);
 
-    const cred = await createUserWithEmailAndPassword(auth, email, senha);
+    const { user } = await createUserWithEmailAndPassword(auth, email, senha);
 
-    await setDoc(doc(db, "users", cred.user.uid), {
-      email: cred.user.email,
+    await setDoc(doc(db, "users", user.uid), {
+      email: user.email,
       fcmToken: null,
       createdAt: new Date().toISOString(),
     });
@@ -259,108 +308,104 @@ async function cadastrar() {
     console.error(erro);
     mostrarToast("Erro ao criar conta", true);
   } finally {
-    removeLoadingGlobal();
+    setLoadingGlobal(false);
   }
 }
 
 async function login() {
-  const email = el.email.value.trim();
-  const senha = el.senha.value.trim();
+  const { email, senha } = obterCredenciais();
 
-  if (!email || !senha) {
-    return mostrarToast("Preencha email e senha", true);
-  }
+  if (!email || !senha) return mostrarToast("Preencha email e senha", true);
 
   try {
-    setLoadingGlobal();
-
+    setLoadingGlobal(true);
     await signInWithEmailAndPassword(auth, email, senha);
-
     mostrarToast("Login realizado");
-
-    // 🔔 garante notificação ativa
-    if ("Notification" in window) {
-      if (Notification.permission === "default") {
-        await Notification.requestPermission();
-      }
-    }
   } catch (erro) {
     console.error(erro);
     mostrarToast("Email ou senha inválidos", true);
   } finally {
-    removeLoadingGlobal();
+    setLoadingGlobal(false);
   }
 }
 
 async function logout() {
   try {
-    setLoadingGlobal();
-
+    setLoadingGlobal(true);
     await signOut(auth);
-
     mostrarToast("Sessão encerrada");
-
-    // 🧹 limpa interface
-    el.lista.innerHTML = "";
-    clientes = [];
   } catch (erro) {
     console.error(erro);
     mostrarToast("Erro ao sair", true);
   } finally {
-    removeLoadingGlobal();
+    setLoadingGlobal(false);
   }
 }
+
 // =========================
 // NOTIFICAÇÕES
 // =========================
+
+const temSuporteNotificacao = () => "Notification" in window;
+
+async function garantirPermissao() {
+  if (!temSuporteNotificacao()) {
+    console.warn("Notificações não suportadas");
+    return false;
+  }
+
+  const { permission } = Notification;
+
+  if (permission === "granted") return true;
+  if (permission !== "default") {
+    console.warn("Notificações bloqueadas");
+    return false;
+  }
+
+  return (await Notification.requestPermission()) === "granted";
+}
+
 async function registrarSWMensageria() {
   if (!("serviceWorker" in navigator)) return null;
 
   try {
-    if (!swRegistration) {
-      swRegistration = await navigator.serviceWorker.register(
-        "./firebase-messaging-sw.js",
-      );
-    }
-    return swRegistration;
+    state.swRegistration ??= await navigator.serviceWorker.register(
+      "./firebase-messaging-sw.js",
+    );
+    return state.swRegistration;
   } catch (erro) {
-    console.error("Erro ao registrar SW de mensageria:", erro);
+    console.error("Erro ao registrar SW:", erro);
     return null;
   }
 }
 
 async function ativarNotificacao() {
-  if (!("Notification" in window)) return;
   if (!auth.currentUser) return;
 
   try {
-    let permission = Notification.permission;
+    const [permitido, registration] = await Promise.all([
+      garantirPermissao(),
+      registrarSWMensageria(),
+    ]);
 
-    if (permission !== "granted") {
-      permission = await Notification.requestPermission();
-    }
+    if (!permitido || !registration) return;
 
-    if (permission !== "granted") {
-      return;
-    }
+    const userRef = doc(db, "users", auth.currentUser.uid);
+    const userSnap = await getDoc(userRef);
 
-    const registration = await registrarSWMensageria();
-    if (!registration) return;
+    if (userSnap.exists() && userSnap.data()?.fcmToken) return;
 
     const token = await getToken(messaging, {
-      vapidKey:
-        "BLp-Ne9os-V__uVv3tafA41DF4eLZiVScun5FSc3H2GbyOlcjIo5yglOtpvzzO0V9DnRXDoT8xIiv9FChxUEEYM",
+      vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration,
     });
 
-    if (!token) return;
+    if (!token) {
+      console.warn("Token não gerado");
+      return;
+    }
 
-    await setDoc(
-      doc(db, "users", auth.currentUser.uid),
-      { fcmToken: token },
-      { merge: true },
-    );
-
+    await setDoc(userRef, { fcmToken: token }, { merge: true });
     mostrarToast("Notificações ativadas");
   } catch (erro) {
     console.error("Erro ao ativar notificações:", erro);
@@ -368,39 +413,48 @@ async function ativarNotificacao() {
   }
 }
 
+function mostrarNotificacao(titulo, corpo) {
+  if (!temSuporteNotificacao() || Notification.permission !== "granted") return;
+
+  new Notification(titulo, {
+    body: corpo,
+    icon: "./icons/icon-192.png",
+    badge: "./icons/icon-192.png",
+    vibrate: [200, 100, 200],
+    tag: "cobranca",
+    renotify: true,
+  });
+}
+
 function escutarNotificacao() {
-  onMessage(messaging, (payload) => {
-    const titulo = payload.notification?.title || "Notificação";
-    const corpo = payload.notification?.body || "";
+  onMessage(messaging, ({ notification = {} }) => {
+    const titulo = notification.title || "Notificação";
+    const corpo = notification.body || "";
 
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(titulo, {
-        body: corpo,
-        icon: "./icons/icon-192.png",
-      });
-      return;
+    mostrarNotificacao(titulo, corpo);
+
+    if (Notification.permission !== "granted") {
+      mostrarToast(`${titulo}${corpo ? ` – ${corpo}` : ""}`);
     }
-
-    mostrarToast(`${titulo}${corpo ? ` - ${corpo}` : ""}`);
   });
 }
 
 // =========================
 // COBRANÇAS
 // =========================
-function notificar(cliente, tipo) {
-  if (!("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
 
-  let mensagem = "";
+const MENSAGENS_COBRANCA = {
+  hoje: (nome) => `💰 Hoje vence: ${nome}`,
+  amanha: (nome) => `⏰ Amanhã vence: ${nome}`,
+  atrasado: (nome) => `⚠️ ${nome} está atrasado`,
+};
 
-  if (tipo === "hoje") mensagem = `💰 Hoje vence: ${cliente.nome}`;
-  if (tipo === "amanha") mensagem = `⏰ Amanhã vence: ${cliente.nome}`;
-  if (tipo === "atrasado") mensagem = `⚠️ ${cliente.nome} está atrasado`;
+async function notificar(cliente, tipo) {
+  if (!temSuporteNotificacao() || Notification.permission !== "granted") return;
 
+  const mensagem = MENSAGENS_COBRANCA[tipo]?.(cliente.nome);
   if (!mensagem) return;
 
-  // 🔔 NOTIFICAÇÃO
   new Notification("Cobrança", {
     body: mensagem,
     icon: "./icons/icon-192.png",
@@ -411,25 +465,57 @@ function notificar(cliente, tipo) {
     requireInteraction: true,
   });
 
-  // 📳 vibração extra (Android)
   navigator.vibrate?.([200, 100, 200]);
 
-  salvarNotificacao(cliente.id).catch(console.error);
+  try {
+    await updateDoc(doc(db, "clientes", cliente.id), {
+      ultimaNotificacaoEm: obterDataHojeISO(),
+    });
+  } catch (erro) {
+    console.error("Erro ao salvar notificação:", erro);
+  }
+}
+
+function verificarCobrancas() {
+  const diaHoje = new Date().getDate();
+  const dataHoje = obterDataHojeISO();
+  const mes = obterMesAtual();
+
+  for (const cliente of state.clientes) {
+    if (cliente.ultimaNotificacaoEm === dataHoje) continue;
+    if (cliente.ultimaCobrancaEm === mes) continue;
+
+    const diff = Number(cliente.diaVencimento) - diaHoje;
+
+    if (diff === 0) notificar(cliente, "hoje");
+    else if (diff === 1) notificar(cliente, "amanha");
+    else if (diff < 0) notificar(cliente, "atrasado");
+  }
+}
+
+function iniciarVerificacaoCobrancas() {
+  if (state.intervaloCobrancas) return;
+  verificarCobrancas();
+  state.intervaloCobrancas = setInterval(verificarCobrancas, CHECK_INTERVAL_MS);
+}
+
+function pararVerificacaoCobrancas() {
+  clearInterval(state.intervaloCobrancas);
+  state.intervaloCobrancas = null;
 }
 
 // =========================
-// CLIENTES
+// CLIENTES — CRUD
 // =========================
-async function criarCliente(nome, contato, dia) {
-  if (!auth.currentUser) {
-    throw new Error("Usuário não autenticado.");
-  }
+
+async function criarCliente({ nome, contato, dia }) {
+  if (!auth.currentUser) throw new Error("Usuário não autenticado.");
 
   await addDoc(collection(db, "clientes"), {
     uid: auth.currentUser.uid,
-    nome: nome.trim(),
-    contato: contato.trim(),
-    diaVencimento: Number(dia),
+    nome,
+    contato,
+    diaVencimento: dia,
     enviadoPor: null,
     ultimaCobrancaEm: null,
     ultimaNotificacaoEm: null,
@@ -438,72 +524,55 @@ async function criarCliente(nome, contato, dia) {
   mostrarToast("Cliente salvo com sucesso");
 }
 
-async function atualizarCliente(nome, contato, dia) {
-  if (!editandoId) {
+async function atualizarCliente({ nome, contato, dia }) {
+  if (!state.editandoId)
     throw new Error("Nenhum cliente selecionado para edição.");
-  }
 
-  await updateDoc(doc(db, "clientes", editandoId), {
-    nome: nome.trim(),
-    contato: contato.trim(),
-    diaVencimento: Number(dia),
+  await updateDoc(doc(db, "clientes", state.editandoId), {
+    nome,
+    contato,
+    diaVencimento: dia,
   });
 
-  editandoId = null;
+  state.editandoId = null;
   mostrarToast("Cliente atualizado");
 }
 
 async function salvarCliente() {
-  const nome = el.nome.value.trim();
-  const contato = el.contato.value.trim();
-  const dia = Number(el.dia.value);
+  const dados = obterDadosCliente();
 
-  if (!nome || !contato || !dia) {
-    mostrarToast("Preencha todos os campos", true);
-    return;
+  if (!dados.nome || !dados.contato || !dados.dia) {
+    return mostrarToast("Preencha todos os campos", true);
   }
 
-  setLoading(true);
+  setLoadingBotao(true);
 
   try {
-    if (editandoId) {
-      await atualizarCliente(nome, contato, dia);
-    } else {
-      await criarCliente(nome, contato, dia);
-    }
-
+    await (state.editandoId ? atualizarCliente(dados) : criarCliente(dados));
     limparCampos();
-    el.nome.focus();
+    el.inputs.nome.focus();
   } catch (erro) {
     console.error(erro);
     mostrarToast(erro.message || "Erro ao salvar cliente", true);
   } finally {
-    setLoading(false);
+    setLoadingBotao(false);
   }
 }
 
 function escutarClientes(uid) {
-  if (unsubscribeClientes) {
-    unsubscribeClientes();
-    unsubscribeClientes = null;
-  }
+  state.unsubscribeClientes?.();
 
   const q = query(collection(db, "clientes"), where("uid", "==", uid));
 
-  unsubscribeClientes = onSnapshot(q, (snap) => {
-    clientes = snap.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    }));
-
+  state.unsubscribeClientes = onSnapshot(q, (snap) => {
+    state.clientes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderizarLista();
     verificarCobrancas();
   });
 }
 
 async function remover(id) {
-  const confirmar = window.confirm("Excluir este cliente?");
-  if (!confirmar) return;
+  if (!confirm("Excluir este cliente?")) return;
 
   try {
     await deleteDoc(doc(db, "clientes", id));
@@ -515,15 +584,14 @@ async function remover(id) {
 }
 
 async function marcarEnviado(id) {
-  const nomePessoa = window.prompt("Quem enviou?");
-  if (!nomePessoa || !nomePessoa.trim()) return;
+  const nomePessoa = prompt("Quem enviou?")?.trim();
+  if (!nomePessoa) return;
 
   try {
     await updateDoc(doc(db, "clientes", id), {
-      enviadoPor: nomePessoa.trim(),
+      enviadoPor: nomePessoa,
       ultimaCobrancaEm: obterMesAtual(),
     });
-
     mostrarToast("Cobrança registrada");
   } catch (erro) {
     console.error(erro);
@@ -532,47 +600,37 @@ async function marcarEnviado(id) {
 }
 
 function editar(id) {
-  const cliente = clientes.find((item) => item.id === id);
+  const cliente = state.clientes.find((c) => c.id === id);
   if (!cliente) return;
 
-  el.nome.value = cliente.nome || "";
-  el.contato.value = cliente.contato || "";
-  el.dia.value = String(cliente.diaVencimento || 1);
+  el.inputs.nome.value = cliente.nome ?? "";
+  el.inputs.contato.value = cliente.contato ?? "";
+  el.inputs.dia.value = String(cliente.diaVencimento ?? 1);
 
-  editandoId = id;
+  state.editandoId = id;
   atualizarTextoBotaoSalvar();
-  el.nome.focus();
+  el.inputs.nome.focus();
 
   mostrarToast("Modo edição ativado");
 }
 
 function resetarEstadoApp() {
-  clientes = [];
-  editandoId = null;
+  state.clientes = [];
+  state.editandoId = null;
+
+  state.unsubscribeClientes?.();
+  state.unsubscribeClientes = null;
+
   limparCampos();
   renderizarLista();
-
-  if (unsubscribeClientes) {
-    unsubscribeClientes();
-    unsubscribeClientes = null;
-  }
 }
 
 // =========================
 // RENDER
 // =========================
-function renderizarEstadoVazio() {
-  el.lista.innerHTML = `
-    <div class="empty-state">
-      <i class="bi bi-inbox"></i>
-      <p>Nenhum cliente cadastrado.</p>
-    </div>
-  `;
-}
 
 function criarCardCliente(cliente) {
   const status = obterStatus(cliente);
-
   const li = document.createElement("li");
   li.className = status.cor;
 
@@ -580,12 +638,10 @@ function criarCardCliente(cliente) {
     <strong>${escaparHTML(cliente.nome)}</strong><br>
     📞 ${escaparHTML(cliente.contato)}<br>
     📅 Dia ${Number(cliente.diaVencimento)}<br>
-
     <span class="status">${status.texto}</span>
-
     <div class="actions">
-      <button class="btn-check" data-id="${cliente.id}" type="button" aria-label="Marcar como enviado">✔</button>
-      <button class="btn-edit" data-id="${cliente.id}" type="button" aria-label="Editar cliente">✏</button>
+      <button class="btn-check"  data-id="${cliente.id}" type="button" aria-label="Marcar como enviado">✔</button>
+      <button class="btn-edit"   data-id="${cliente.id}" type="button" aria-label="Editar cliente">✏</button>
       <button class="btn-delete" data-id="${cliente.id}" type="button" aria-label="Excluir cliente">🗑</button>
     </div>
   `;
@@ -594,181 +650,137 @@ function criarCardCliente(cliente) {
 }
 
 function renderizarLista() {
-  if (!el.lista) return;
+  const lista = el.lista;
+  if (!lista) return;
 
-  el.lista.innerHTML = "";
-
-  if (clientes.length === 0) {
-    renderizarEstadoVazio();
+  if (state.clientes.length === 0) {
+    lista.innerHTML = `
+      <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>Nenhum cliente cadastrado.</p>
+      </div>
+    `;
     return;
   }
 
   const fragment = document.createDocumentFragment();
+  state.clientes.forEach((c) => fragment.appendChild(criarCardCliente(c)));
 
-  clientes.forEach((cliente) => {
-    fragment.appendChild(criarCardCliente(cliente));
-  });
-
-  el.lista.appendChild(fragment);
+  lista.innerHTML = "";
+  lista.appendChild(fragment);
 }
 
 // =========================
 // EVENTOS
 // =========================
-function handleListaClick(event) {
-  const btn = event.target.closest("button");
+
+function handleListaClick({ target }) {
+  const btn = target.closest("button[data-id]");
   if (!btn) return;
 
-  const id = btn.dataset.id;
-  if (!id) return;
+  const { id } = btn.dataset;
 
-  if (btn.classList.contains("btn-delete")) {
-    remover(id);
-    return;
-  }
-
-  if (btn.classList.contains("btn-edit")) {
-    editar(id);
-    return;
-  }
-
-  if (btn.classList.contains("btn-check")) {
-    marcarEnviado(id);
-  }
+  if (btn.classList.contains("btn-delete")) remover(id);
+  else if (btn.classList.contains("btn-edit")) editar(id);
+  else if (btn.classList.contains("btn-check")) marcarEnviado(id);
 }
 
 function bindEvents() {
-  el.formLogin?.addEventListener("submit", (event) => {
-    event.preventDefault();
+  el.forms.login?.addEventListener("submit", (e) => {
+    e.preventDefault();
     login();
   });
-
-  el.formCliente?.addEventListener("submit", (event) => {
-    event.preventDefault();
+  el.forms.cliente?.addEventListener("submit", (e) => {
+    e.preventDefault();
     salvarCliente();
   });
 
-  el.btnCadastrar?.addEventListener("click", cadastrar);
-  el.btnLogout?.addEventListener("click", logout);
-  el.btnTema?.addEventListener("click", toggleTema);
-  el.btnAumentarDia?.addEventListener("click", aumentarDia);
-  el.btnDiminuirDia?.addEventListener("click", diminuirDia);
+  el.buttons.cadastrar?.addEventListener("click", cadastrar);
+  el.buttons.logout?.addEventListener("click", logout);
+  el.buttons.tema?.addEventListener("click", toggleTema);
+  el.buttons.aumentarDia?.addEventListener("click", () => alterarDia(+1));
+  el.buttons.diminuirDia?.addEventListener("click", () => alterarDia(-1));
+
   el.lista?.addEventListener("click", handleListaClick);
 
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredPrompt = event;
-
-    if (el.installBtn) {
-      el.installBtn.style.display = "block";
-    }
-
-    console.log("Pode instalar o app!");
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    state.deferredPrompt = e;
+    if (el.buttons.instalar) el.buttons.instalar.style.display = "block";
   });
 
-  window.addEventListener("load", () => {
-    document.body.classList.add("loaded");
-  });
+  window.addEventListener("load", () => document.body.classList.add("loaded"));
 }
 
 // =========================
 // PWA
 // =========================
+
 async function instalarApp() {
-  if (!deferredPrompt) return;
+  const prompt = state.deferredPrompt;
+  if (!prompt) return;
 
-  deferredPrompt.prompt();
+  prompt.prompt();
 
-  const { outcome } = await deferredPrompt.userChoice;
+  const { outcome } = await prompt.userChoice;
   console.log("Resultado da instalação:", outcome);
 
-  deferredPrompt = null;
-
-  if (el.installBtn) {
-    el.installBtn.style.display = "none";
-  }
+  state.deferredPrompt = null;
+  if (el.buttons.instalar) el.buttons.instalar.style.display = "none";
 }
 
 window.instalarApp = instalarApp;
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("./service-worker.js")
-      .then(() => console.log("PWA pronto"))
-      .catch((erro) => console.error("Erro no service worker:", erro));
-  });
+function registrarServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  navigator.serviceWorker
+    .register("./service-worker.js")
+    .then(() => console.log("✅ PWA pronto"))
+    .catch((e) => console.error("❌ Erro no service worker:", e));
 }
+
+window.addEventListener("load", registrarServiceWorker);
+
+// =========================
+// AUTH STATE
+// =========================
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    pararVerificacaoCobrancas();
+    resetarEstadoApp();
+    mostrarAuth();
+    return;
+  }
+
+  mostrarApp();
+  escutarClientes(user.uid);
+
+  if (!state.jaEscutandoNotificacao) {
+    escutarNotificacao();
+    state.jaEscutandoNotificacao = true;
+  }
+
+  try {
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    if (!userSnap.exists() || !userSnap.data()?.fcmToken)
+      await ativarNotificacao();
+  } catch (erro) {
+    console.error("Erro ao verificar token:", erro);
+  }
+
+  iniciarVerificacaoCobrancas();
+});
 
 // =========================
 // INIT
 // =========================
+
 function init() {
   carregarTema();
   bindEvents();
-  escutarNotificacao();
   mostrarAuth();
-
-  verificarCobrancas();
-
-  if (intervaloCobrancas) {
-    clearInterval(intervaloCobrancas);
-  }
-
-  intervaloCobrancas = setInterval(verificarCobrancas, 60000);
 }
-
-function verificarCobrancas() {
-  const hoje = new Date();
-  const diaHoje = hoje.getDate();
-  const dataHoje = obterDataHojeISO();
-  const mesAtual = obterMesAtual();
-
-  clientes.forEach((cliente) => {
-    const jaNotificadoHoje = cliente.ultimaNotificacaoEm === dataHoje;
-    const jaCobrado = cliente.ultimaCobrancaEm === mesAtual;
-
-    if (jaNotificadoHoje || jaCobrado) return;
-
-    const diasRestantes = Number(cliente.diaVencimento) - diaHoje;
-
-    if (diasRestantes === 0) {
-      notificar(cliente, "hoje");
-      return;
-    }
-
-    if (diasRestantes === 1) {
-      notificar(cliente, "amanha");
-      return;
-    }
-
-    if (diasRestantes < 0) {
-      notificar(cliente, "atrasado");
-    }
-  });
-}
-
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    mostrarApp();
-    escutarClientes(user.uid);
-
-    try {
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists() || !userSnap.data().fcmToken) {
-        await ativarNotificacao();
-      }
-    } catch (erro) {
-      console.error("Erro ao verificar token do usuário:", erro);
-    }
-
-    return;
-  }
-
-  resetarEstadoApp();
-  mostrarAuth();
-});
 
 init();

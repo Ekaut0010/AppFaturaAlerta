@@ -1,202 +1,143 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alerta de Faturas</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alerta de Faturas</title>
 
-  <meta
-    name="description"
-    content="Controle de vencimentos de clientes com alertas automáticos"
-  />
-  <meta name="theme-color" content="#3b82f6" />
+    <meta name="description" content="Controle de vencimentos de clientes com alertas automáticos" />
+    <meta name="theme-color" content="#3b82f6" />
 
-  <link rel="manifest" href="./manifest.json" />
-  <link
-    rel="apple-touch-icon"
-    href="./icons/4527d82a-3402-41cf-99f8-e2fbed10053d.png"
-  />
-  <link rel="stylesheet" href="style.css" />
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-    rel="stylesheet"
-  />
-  <link rel="icon" href="data:," />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="apple-touch-icon" href="./icons/4527d82a-3402-41cf-99f8-e2fbed10053d.png" />
+    <link rel="stylesheet" href="style.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="icon" href="data:," />
 
-  <!-- iOS -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="Faturas" />
+    <!-- iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Faturas" />
 </head>
 
 <body>
-  <!-- AUTH -->
-  <main id="auth">
-    <section class="auth-container">
-      <div class="auth-card">
-        <h2>🔐 Entrar</h2>
-        <p class="auth-card-subtitle">
-          Acesse sua conta para gerenciar seus clientes
-        </p>
+    <!-- AUTH -->
+    <main id="auth" class="screen">
+        <section class="auth-container">
+            <div class="auth-card">
+                <h2>🔐 Entrar</h2>
+                <p class="auth-card-subtitle">
+                    Acesse sua conta para gerenciar seus clientes
+                </p>
 
-        <form id="formLogin" class="form" autocomplete="on">
-          <div class="input-group">
-            <i class="bi bi-envelope" aria-hidden="true"></i>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="Email"
-              autocomplete="email"
-              required
-            />
-          </div>
+                <form id="formLogin" class="form" autocomplete="on">
+                    <div class="input-group">
+                        <i class="bi bi-envelope"></i>
+                        <input id="email" name="email" type="email" placeholder="Email" autocomplete="email" required />
+                    </div>
 
-          <div class="input-group">
-            <i class="bi bi-lock" aria-hidden="true"></i>
-            <input
-              id="senha"
-              name="senha"
-              type="password"
-              placeholder="Senha"
-              autocomplete="current-password"
-              required
-            />
-          </div>
+                    <div class="input-group">
+                        <i class="bi bi-lock"></i>
+                        <input id="senha" name="senha" type="password" placeholder="Senha"
+                            autocomplete="current-password" required />
+                    </div>
 
-          <button class="btn" id="btnLogin" type="submit">
-            Entrar
-          </button>
-        </form>
+                    <button class="btn" type="submit">
+                        Entrar
+                    </button>
+                </form>
 
-        <button class="link" id="btnCadastrar" type="button">
-          Criar conta
-        </button>
-      </div>
-    </section>
-  </main>
-
-  <!-- APP -->
-  <main id="app">
-    <div class="container app-container">
-      <!-- FORM PANEL -->
-      <section class="form-panel">
-        <header class="header">
-          <div>
-            <h1>📊 Clientes</h1>
-            <small>Controle de vencimentos</small>
-          </div>
-
-          <div class="header-actions">
-            <button
-              class="theme-toggle"
-              id="btnTema"
-              type="button"
-              title="Alterar tema"
-              aria-label="Alterar tema"
-            >
-              <i class="bi bi-moon-stars" aria-hidden="true"></i>
-            </button>
-
-            <button
-              class="logout"
-              id="btnLogout"
-              type="button"
-              title="Sair"
-              aria-label="Sair"
-            >
-              <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
-            </button>
-          </div>
-        </header>
-
-        <div class="form-title">
-          <h2>Novo cliente</h2>
-          <p>Cadastre e acompanhe vencimentos mensais</p>
-        </div>
-
-        <form class="form" id="formCliente">
-          <div class="input-group">
-            <i class="bi bi-person" aria-hidden="true"></i>
-            <input
-              id="nome"
-              name="nome"
-              type="text"
-              placeholder="Nome completo"
-              autocomplete="name"
-              required
-            />
-          </div>
-
-          <div class="input-group">
-            <i class="bi bi-whatsapp" aria-hidden="true"></i>
-            <input
-              id="contato"
-              name="contato"
-              type="text"
-              placeholder="WhatsApp / Contato"
-              inputmode="tel"
-              required
-            />
-          </div>
-
-          <div class="day-box">
-            <label class="day-box-label" for="dia">Dia do vencimento</label>
-
-            <div class="input-dia">
-              <button
-                id="btnDiminuirDia"
-                type="button"
-                aria-label="Diminuir dia"
-              >
-                −
-              </button>
-
-              <input
-                id="dia"
-                name="dia"
-                type="text"
-                value="1"
-                readonly
-                aria-label="Dia do vencimento"
-              />
-
-              <button
-                id="btnAumentarDia"
-                type="button"
-                aria-label="Aumentar dia"
-              >
-                +
-              </button>
+                <button class="link" id="btnCadastrar" type="button">
+                    Criar conta
+                </button>
             </div>
-          </div>
-
-          <button class="btn" id="btnSalvar" type="submit">
-            <i class="bi bi-save" aria-hidden="true"></i>
-            <span>Salvar cliente</span>
-          </button>
-        </form>
-      </section>
-
-      <!-- LIST PANEL -->
-      <section class="list-panel">
-        <header class="list-topbar">
-          <div>
-            <h3>Clientes cadastrados</h3>
-            <p>Acompanhe vencimentos e marque envios</p>
-          </div>
-        </header>
-
-        <section class="lista" aria-label="Lista de clientes">
-          <ul id="listaClientes"></ul>
         </section>
-      </section>
-    </div>
-  </main>
+    </main>
 
-  <button type="button" onclick="instalarApp()" class="btn install-btn">
-    📲 Instalar App
-  </button>
+    <!-- APP -->
+    <main id="app" class="screen">
+        <div class="container app-container">
 
-  <script type="module" src="./script.js"></script>
+            <!-- FORM PANEL -->
+            <section class="form-panel">
+                <header class="header">
+                    <div>
+                        <h1>📊 Clientes</h1>
+                        <small>Controle de vencimentos</small>
+                    </div>
+
+                    <div class="header-actions">
+                        <button class="theme-toggle" id="btnTema" type="button" aria-label="Alterar tema">
+                            <i class="bi bi-moon-stars"></i>
+                        </button>
+
+                        <button class="logout" id="btnLogout" type="button" aria-label="Sair">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="form-title">
+                    <h2>Novo cliente</h2>
+                    <p>Cadastre e acompanhe vencimentos mensais</p>
+                </div>
+
+                <form id="formCliente" class="form">
+                    <div class="input-group">
+                        <i class="bi bi-person"></i>
+                        <input id="nome" name="nome" type="text" placeholder="Nome completo" autocomplete="name"
+                            required />
+                    </div>
+
+                    <div class="input-group">
+                        <i class="bi bi-whatsapp"></i>
+                        <input id="contato" name="contato" type="text" placeholder="WhatsApp / Contato" inputmode="tel"
+                            required />
+                    </div>
+
+                    <div class="day-box">
+                        <label for="dia" class="day-box-label">
+                            Dia do vencimento
+                        </label>
+
+                        <div class="input-dia">
+                            <button id="btnDiminuirDia" type="button">−</button>
+
+                            <input id="dia" name="dia" type="text" value="1" readonly />
+
+                            <button id="btnAumentarDia" type="button">+</button>
+                        </div>
+                    </div>
+
+                    <button class="btn" id="btnSalvar" type="submit">
+                        <i class="bi bi-save"></i>
+                        <span>Salvar cliente</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- LIST PANEL -->
+            <section class="list-panel">
+                <header class="list-topbar">
+                    <div>
+                        <h3>Clientes cadastrados</h3>
+                        <p>Acompanhe vencimentos e marque envios</p>
+                    </div>
+                </header>
+
+                <section class="lista">
+                    <ul id="listaClientes"></ul>
+                </section>
+            </section>
+        </div>
+    </main>
+
+    <!-- PWA -->
+    <button type="button" onclick="instalarApp()" class="btn install-btn" style="display: none">
+        📲 Instalar App
+    </button>
+
+    <script type="module" src="./script.js"></script>
 </body>
+
 </html>
